@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 
 // The main App component containing the entire UI for the sign-up page
