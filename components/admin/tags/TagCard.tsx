@@ -19,9 +19,10 @@ interface TagCardProps {
   };
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onView?: (id: string) => void;
 }
 
-const TagCard = ({ tag, onEdit, onDelete }: TagCardProps) => {
+const TagCard = ({ tag, onEdit, onDelete, onView }: TagCardProps) => {
   const getTagColor = (name: string) => {
     // Generate a consistent color based on tag name
     const colors = [
@@ -53,7 +54,10 @@ const TagCard = ({ tag, onEdit, onDelete }: TagCardProps) => {
           <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center gap-2">
               <Hash size={18} className="text-[#f7a5a5]/70" />
-              <h3 className="text-lg font-medium text-[#f7a5a5] hover:text-[#ffdbb6] transition-colors duration-300 cursor-pointer">
+              <h3
+                className="text-lg font-medium text-[#f7a5a5] hover:text-[#ffdbb6] transition-colors duration-300 cursor-pointer"
+                onClick={() => onView && onView(tag.id)}
+              >
                 {tag.name}
               </h3>
             </div>

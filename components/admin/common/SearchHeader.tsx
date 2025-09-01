@@ -21,6 +21,7 @@ const SearchHeader = ({ title, onSearch, onNew }: SearchHeaderProps) => {
             text-[#f7a5a5] placeholder-[#f7a5a5]/50 focus:outline-none focus:border-[#f7a5a5]/50
             transition-all duration-300"
             onChange={(e) => onSearch(e.target.value)}
+            suppressHydrationWarning={true}
           />
           <Search
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f7a5a5]/50"
@@ -31,6 +32,7 @@ const SearchHeader = ({ title, onSearch, onNew }: SearchHeaderProps) => {
           onClick={onNew}
           className="flex items-center gap-2 px-6 py-3 bg-[#f7a5a5] text-[#5d688a] rounded-full
           hover:bg-[#ffdbb6] transition-colors duration-300 font-medium"
+          suppressHydrationWarning={true}
         >
           <Plus size={20} />
           New {title}
