@@ -21,7 +21,18 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     name: "Manage",
-    subitems: ["Posts", "Pages", "Users", "Groups", "Uploads", "Tags"],
+    subitems: [
+      "Posts",
+      "Pages",
+      "Users",
+      "Groups",
+      "Uploads",
+      "Tags",
+      "Categories",
+      "Comments",
+      "Spam",
+      "Webmentions",
+    ],
   },
   {
     name: "Settings",
@@ -29,7 +40,7 @@ const navItems: NavItem[] = [
       "General",
       "Content",
       "Usersettings",
-      "Comments",
+      "CommentsSettings",
       "Routes",
       "Sitemap",
       "ReadMore",
@@ -126,6 +137,7 @@ const Sidebar = () => {
       <button
         onClick={toggleSidebar}
         className="absolute right-4 top-4 text-white hover:text-accent transition-colors z-10"
+        suppressHydrationWarning={true}
       >
         {isOpen ? <PanelLeftClose size={24} /> : <PanelRightOpen size={24} />}
       </button>
@@ -142,6 +154,7 @@ const Sidebar = () => {
               className={`w-full text-left p-4 flex items-center justify-between
               text-white hover:bg-white/10 transition-colors rounded-lg mx-2
               ${expandedItems.includes(item.name) ? "bg-white/10" : ""}`}
+              suppressHydrationWarning={true}
             >
               <span className="flex items-center">
                 {!isOpen ? (
@@ -176,6 +189,7 @@ const Sidebar = () => {
                         ? "text-white bg-white/20 border-r-2 border-accent"
                         : "text-white/80 hover:text-white hover:bg-white/10"
                     }`}
+                    suppressHydrationWarning={true}
                   >
                     {subitem}
                   </button>

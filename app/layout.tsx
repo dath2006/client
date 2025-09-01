@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Home, Settings, Rss, LogIn, UserPlus } from "lucide-react";
+import AuthProvider from "@/components/AuthProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -56,22 +57,22 @@ export default function RootLayout({
               Feed
             </a>
             <a
-              href="/login"
+              href="/auth/signin"
               className="px-4 py-1.5 rounded-full border border-primary/20 hover:bg-accent/20 transition-colors flex items-center gap-2"
             >
               <LogIn size={16} />
-              Login
+              Sign In
             </a>
             <a
-              href="/signup"
+              href="/auth/signup"
               className="px-4 py-1.5 rounded-full bg-primary text-background hover:bg-secondary transition-colors flex items-center gap-2"
             >
               <UserPlus size={16} />
-              Sign up
+              Sign Up
             </a>
           </div>
         </nav>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

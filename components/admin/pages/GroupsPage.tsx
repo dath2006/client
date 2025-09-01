@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import GroupCard from "@/components/admin/groups/GroupCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
+import GroupModal, {
+  GroupFormData,
+} from "@/components/admin/groups/GroupModal";
 
 interface Group {
   id: string;
@@ -15,6 +18,10 @@ interface Group {
 
 const GroupsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   // Predefined system groups
   const mockGroups: Group[] = [
@@ -25,11 +32,21 @@ const GroupsPage = () => {
       createdAt: new Date("2024-01-01"),
       description: "Full system access with all administrative privileges",
       permissions: [
-        "manage_users",
-        "manage_content",
-        "system_settings",
+        "add_users",
+        "delete_users",
+        "edit_users",
+        "add_groups",
+        "delete_groups",
+        "edit_groups",
+        "change_settings",
         "delete_posts",
-        "manage_groups",
+        "edit_posts",
+        "add_posts",
+        "view_private_posts",
+        "manage_categories",
+        "toggle_extensions",
+        "export_content",
+        "import_content",
       ],
     },
     {
@@ -38,7 +55,17 @@ const GroupsPage = () => {
       userCount: 45,
       createdAt: new Date("2024-01-01"),
       description: "Regular registered users with standard posting privileges",
-      permissions: ["create_posts", "comment", "like_posts", "edit_profile"],
+      permissions: [
+        "add_posts",
+        "add_comments",
+        "like_posts",
+        "edit_own_posts",
+        "edit_own_comments",
+        "delete_own_posts",
+        "delete_own_comments",
+        "view_site",
+        "view_pages",
+      ],
     },
     {
       id: "3",
@@ -47,11 +74,17 @@ const GroupsPage = () => {
       createdAt: new Date("2024-02-15"),
       description: "Trusted users with additional content access",
       permissions: [
-        "create_posts",
-        "comment",
+        "add_posts",
+        "add_comments",
         "like_posts",
-        "access_private",
-        "share_content",
+        "unlike_posts",
+        "view_private_posts",
+        "view_site",
+        "view_pages",
+        "edit_own_posts",
+        "edit_own_comments",
+        "delete_own_posts",
+        "delete_own_comments",
       ],
     },
     {
@@ -60,7 +93,7 @@ const GroupsPage = () => {
       userCount: 3,
       createdAt: new Date("2024-01-01"),
       description: "Restricted users with limited or no access",
-      permissions: ["view_public"],
+      permissions: ["view_site"],
     },
     {
       id: "5",
@@ -68,17 +101,27 @@ const GroupsPage = () => {
       userCount: 0,
       createdAt: new Date("2024-01-01"),
       description: "Anonymous visitors with read-only access",
-      permissions: ["view_public", "search"],
+      permissions: ["view_site", "view_pages"],
     },
   ];
 
+  // Initialize groups with mock data
+  React.useEffect(() => {
+    setGroups(mockGroups);
+  }, []);
+
   const handleEdit = (id: string) => {
     console.log("Editing group:", id);
-    // Add edit logic here
+    const group = groups.find((g) => g.id === id);
+    if (group) {
+      setSelectedGroup(group);
+      setModalMode("edit");
+      setIsModalOpen(true);
+    }
   };
 
   const handleDelete = (id: string) => {
-    const group = mockGroups.find((g) => g.id === id);
+    const group = groups.find((g) => g.id === id);
     if (group) {
       const isSystem = [
         "admin",
@@ -92,7 +135,7 @@ const GroupsPage = () => {
         return;
       }
       console.log("Deleting group:", id);
-      // Add delete logic here
+      setGroups((prev) => prev.filter((group) => group.id !== id));
     }
   };
 
@@ -103,7 +146,43 @@ const GroupsPage = () => {
 
   const handleNew = () => {
     console.log("Creating new group");
-    // Add new group creation logic here
+    setSelectedGroup(null);
+    setModalMode("create");
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedGroup(null);
+  };
+
+  const handleGroupSave = (groupData: GroupFormData) => {
+    if (modalMode === "create") {
+      // Create new group
+      const newGroup: Group = {
+        id: Date.now().toString(),
+        name: groupData.name,
+        userCount: 0,
+        createdAt: new Date(),
+        description: groupData.description,
+        permissions: groupData.permissions,
+      };
+      setGroups((prev) => [...prev, newGroup]);
+    } else if (modalMode === "edit" && selectedGroup) {
+      // Update existing group
+      setGroups((prev) =>
+        prev.map((group) =>
+          group.id === selectedGroup.id
+            ? {
+                ...group,
+                name: groupData.name,
+                description: groupData.description,
+                permissions: groupData.permissions,
+              }
+            : group
+        )
+      );
+    }
   };
 
   return (
@@ -113,7 +192,7 @@ const GroupsPage = () => {
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
         <div className="grid gap-4">
-          {mockGroups.map((group) => (
+          {groups.map((group) => (
             <GroupCard
               key={group.id}
               group={group}
@@ -122,7 +201,7 @@ const GroupsPage = () => {
             />
           ))}
 
-          {mockGroups.length === 0 && (
+          {groups.length === 0 && (
             <div className="bg-white/5 rounded-lg border border-[#f7a5a5]/20 p-8 text-center">
               <h3 className="text-lg font-medium text-[#f7a5a5] mb-2">
                 No groups found
@@ -140,6 +219,15 @@ const GroupsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Group Modal */}
+      <GroupModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onSave={handleGroupSave}
+        group={selectedGroup}
+        mode={modalMode}
+      />
     </div>
   );
 };

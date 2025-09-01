@@ -23,6 +23,10 @@ import LightboxSettingsPage from "@/components/admin/pages/LightboxSettingsPage"
 import SyntaxHighlightingSettingsPage from "@/components/admin/pages/SyntaxHighlightingSettingsPage";
 import MathJaxSettingsPage from "@/components/admin/pages/MathJaxSettingsPage";
 import TagsPage from "@/components/admin/pages/TagsPage";
+import CategoriesPage from "@/components/admin/pages/CategoriesPage";
+import CommentsPage from "@/components/admin/pages/CommentsPage";
+import SpamPage from "@/components/admin/pages/SpamPage";
+import WebmentionsPage from "@/components/admin/pages/WebmentionsPage";
 
 interface AdminSectionPageProps {
   params: Promise<{
@@ -47,13 +51,21 @@ const AdminSectionPage = ({ params }: AdminSectionPageProps) => {
         return <UploadsPage />;
       case "tags":
         return <TagsPage />;
+      case "categories":
+        return <CategoriesPage />;
+      case "comments":
+        return <CommentsPage />;
+      case "spam":
+        return <SpamPage />;
+      case "webmentions":
+        return <WebmentionsPage />;
       case "general":
         return <GeneralSettingsPage />;
       case "content":
         return <ContentSettingsPage />;
       case "usersettings":
         return <UserSettingsPage />;
-      case "comments":
+      case "commentssettings":
         return <CommentsSettingsPage />;
       case "routes":
         return <RoutesSettingsPage />;

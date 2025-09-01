@@ -206,6 +206,50 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Prose styling for post content */
+.prose {
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+}
+
+.prose strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+.prose code {
+  background-color: var(--surface);
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+}
+
+.prose blockquote {
+  border-left: 0.25rem solid var(--primary);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Custom scrollbar for dark mode */
 @media (prefers-color-scheme: dark) {
   ::-webkit-scrollbar-thumb {
