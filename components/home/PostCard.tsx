@@ -15,6 +15,7 @@ import {
   Share2,
   Edit,
   Trash2,
+  Eye, // 1. Imported the Eye icon
 } from "lucide-react";
 
 interface PostCardProps {
@@ -26,6 +27,7 @@ interface PostCardProps {
     author: string;
     date: string;
     tags: string[];
+    views: number; // 2. Added views to the interface
     likes: number;
     comments: number;
     imageUrl?: string;
@@ -37,6 +39,12 @@ interface PostCardProps {
 }
 
 const PostCard = ({ post }: PostCardProps) => {
+  // Fix for the error: "Cannot read properties of undefined (reading 'type')"
+  // This happens if the component is rendered without a `post` prop.
+  if (!post) {
+    return null; // Render nothing if no post data is provided
+  }
+
   const getPostIcon = (type: string) => {
     switch (type) {
       case "text":
@@ -69,7 +77,7 @@ const PostCard = ({ post }: PostCardProps) => {
         return (
           <div className="mb-4">
             <img
-              src={post.imageUrl || "/api/placeholder/400/250"}
+              src={post.imageUrl || `https://placehold.co/400x250/2d3748/ffffff?text=${post.title}`}
               alt={post.title}
               className="w-full h-64 object-cover rounded-lg shadow-md"
             />
@@ -151,7 +159,7 @@ const PostCard = ({ post }: PostCardProps) => {
 
   return (
     <article
-      className={`bg-card rounded-xl p-6 card-shadow hover:shadow-lg transition-all duration-300 ${getPostTypeStyles(
+      className={`bg-card rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 ${getPostTypeStyles(
         post.type
       )}`}
     >
@@ -216,18 +224,23 @@ const PostCard = ({ post }: PostCardProps) => {
       {/* Post Actions */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <div className="flex items-center gap-6">
-          <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
-            <Heart size={18} />
-            <span>{post.likes}</span>
-          </button>
-          <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
-            <MessageCircle size={18} />
-            <span>{post.comments}</span>
-          </button>
-          <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
-            <Share2 size={18} />
-            <span>Share</span>
-          </button>
+            {/* 3. Added the views count button here */}
+            <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+                <Eye size={18} />
+                <span>{post.views}</span>
+            </button>
+            <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+                <Heart size={18} />
+                <span>{post.likes}</span>
+            </button>
+            <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+                <MessageCircle size={18} />
+                <span>{post.comments}</span>
+            </button>
+            <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
+                <Share2 size={18} />
+                <span>Share</span>
+            </button>
         </div>
 
         <button className="text-text-secondary hover:text-text-primary transition-colors font-medium">
@@ -239,3 +252,4 @@ const PostCard = ({ post }: PostCardProps) => {
 };
 
 export default PostCard;
+
