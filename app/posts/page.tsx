@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 
 // SVG Icon Components
@@ -320,6 +321,23 @@ const MusicIcon = () => (
   </svg>
 );
 
+const SigmaIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    className="lucide lucide-sigma"
+  >
+    <path d="M18 7V4H6l6 8-6 8h12v-3" />
+  </svg>
+);
+
 // Mock Data
 const allCategories = {
   Tech: ["React", "JavaScript", "Tailwind CSS", "Vite", "Node.js"],
@@ -340,11 +358,16 @@ const markdownCheatsheet = [
   { syntax: "* List item", description: "Creates a bullet point." },
   { syntax: "1. List item", description: "Creates a numbered list item." },
   { syntax: "---", description: "Creates a horizontal rule." },
+  { syntax: "$...$", description: "Formats mathematical text." },
 ];
 
 // Simple Markdown to HTML renderer for preview
 const renderMarkdown = (text: string) => {
   let html = text
+    .replace(
+      /\$(.*?)\$/g,
+      '<span class="italic font-serif text-cyan-300">$1</span>'
+    )
     .replace(/^# (.*$)/gim, "<h1>$1</h1>")
     .replace(/^## (.*$)/gim, "<h2>$1</h2>")
     .replace(/^\> (.*$)/gim, "<blockquote>$1</blockquote>")
@@ -367,12 +390,14 @@ export default function App() {
   const [feather, setFeather] = useState("Text");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [video, setVideo] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [audio, setAudio] = useState<File | null>(null);
-  const [audioPreview, setAudioPreview] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
+  const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
+  const [audios, setAudios] = useState<File[]>([]);
+  const [audioPreviews, setAudioPreviews] = useState<string[]>([]);
+  const [embedUrl, setEmbedUrl] = useState("");
+  const [rights, setRights] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [category, setCategory] = useState("");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -388,6 +413,7 @@ export default function App() {
   const tagsRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const markdownHelpRef = useRef<HTMLDivElement>(null);
+  const prevFeatherRef = useRef<string>(feather);
 
   useEffect(() => {
     setWordCount(body.trim() === "" ? 0 : body.trim().split(/\s+/).length);
@@ -402,6 +428,17 @@ export default function App() {
       setSelectedTags([]);
     }
   }, [category]);
+
+  // Effect to manage quote formatting when feather changes
+  useEffect(() => {
+    const prevFeather = prevFeatherRef.current;
+    if (feather === "Quote" && prevFeather !== "Quote") {
+      setBody((b) => `"${b.replace(/^"|"$/g, "")}"`);
+    } else if (feather !== "Quote" && prevFeather === "Quote") {
+      setBody((b) => b.replace(/^"|"$/g, ""));
+    }
+    prevFeatherRef.current = feather;
+  }, [feather]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -434,6 +471,7 @@ export default function App() {
       | "h2"
       | "quote"
       | "hr"
+      | "math"
   ) => {
     const textarea = bodyRef.current;
     if (!textarea) return;
@@ -455,6 +493,7 @@ export default function App() {
       h2: { start: "## ", end: "" },
       quote: { start: "> ", end: "" },
       hr: { start: "\n---\n", end: "" },
+      math: { start: "$", end: "$" },
     };
 
     const { start: startChar, end: endChar } = formatting[formatType];
@@ -499,24 +538,6 @@ export default function App() {
       setTimeout(() => setNotification(null), 3000);
       return;
     }
-    if (feather === "Photo" && !photo) {
-      setNotification({ type: "error", message: "Please upload a photo." });
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
-    if (feather === "Video" && !video) {
-      setNotification({ type: "error", message: "Please upload a video." });
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
-    if (feather === "Audio" && !audio) {
-      setNotification({
-        type: "error",
-        message: "Please upload an audio file.",
-      });
-      setTimeout(() => setNotification(null), 3000);
-      return;
-    }
 
     const postData = {
       title,
@@ -524,9 +545,11 @@ export default function App() {
       feather,
       category,
       tags: selectedTags,
-      photo,
-      video,
-      audio,
+      photos,
+      videos,
+      audios,
+      embedUrl,
+      rights,
       createdAt: new Date().toISOString(),
     };
 
@@ -536,7 +559,6 @@ export default function App() {
       type: "success",
       message: "Post published successfully!",
     });
-
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -571,40 +593,52 @@ export default function App() {
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhoto(file);
-      setPhotoPreview(URL.createObjectURL(file));
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setPhotos((prevPhotos) => [...prevPhotos, ...newFiles]);
+      setPhotoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
     }
   };
 
-  const removePhoto = () => {
-    setPhoto(null);
-    setPhotoPreview(null);
+  const removePhoto = (indexToRemove: number) => {
+    URL.revokeObjectURL(photoPreviews[indexToRemove]);
+    setPhotos(photos.filter((_, index) => index !== indexToRemove));
+    setPhotoPreviews(
+      photoPreviews.filter((_, index) => index !== indexToRemove)
+    );
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setVideo(file);
-      setVideoPreview(URL.createObjectURL(file));
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setVideos((prevVideos) => [...prevVideos, ...newFiles]);
+      setVideoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
     }
   };
-  const removeVideo = () => {
-    setVideo(null);
-    setVideoPreview(null);
+  const removeVideo = (indexToRemove: number) => {
+    URL.revokeObjectURL(videoPreviews[indexToRemove]);
+    setVideos(videos.filter((_, index) => index !== indexToRemove));
+    setVideoPreviews(
+      videoPreviews.filter((_, index) => index !== indexToRemove)
+    );
   };
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAudio(file);
-      setAudioPreview(URL.createObjectURL(file));
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+      setAudios((prevAudios) => [...prevAudios, ...newFiles]);
+      setAudioPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
     }
   };
-  const removeAudio = () => {
-    setAudio(null);
-    setAudioPreview(null);
+  const removeAudio = (indexToRemove: number) => {
+    URL.revokeObjectURL(audioPreviews[indexToRemove]);
+    setAudios(audios.filter((_, index) => index !== indexToRemove));
+    setAudioPreviews(
+      audioPreviews.filter((_, index) => index !== indexToRemove)
+    );
   };
 
   const renderFeatherFields = () => {
@@ -613,46 +647,48 @@ export default function App() {
         return (
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Upload Photo
+              Upload Photos
             </label>
-            {photoPreview ? (
-              <div className="relative">
-                <img
-                  src={photoPreview}
-                  alt="Preview"
-                  className="w-full h-auto rounded-lg"
+            <div className="flex items-center justify-center w-full mb-4">
+              <label
+                htmlFor="dropzone-file"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <UploadCloudIcon />
+                  <p className="mb-2 text-sm text-gray-400">
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">SVG, PNG, JPG or GIF</p>
+                </div>
+                <input
+                  id="dropzone-file"
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
                 />
-                <button
-                  onClick={removePhoto}
-                  className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
-                >
-                  <XIcon />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="dropzone-file"
-                  className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <UploadCloudIcon />
-                    <p className="mb-2 text-sm text-gray-400">
-                      <span className="font-semibold">Click to upload</span> or
-                      drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      SVG, PNG, JPG or GIF
-                    </p>
+              </label>
+            </div>
+            {photoPreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {photoPreviews.map((preview, index) => (
+                  <div key={preview} className="relative">
+                    <img
+                      src={preview}
+                      alt={`preview ${index}`}
+                      className="w-full h-24 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => removePhoto(index)}
+                      className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
+                    >
+                      <XIcon />
+                    </button>
                   </div>
-                  <input
-                    id="dropzone-file"
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                  />
-                </label>
+                ))}
               </div>
             )}
           </div>
@@ -661,44 +697,48 @@ export default function App() {
         return (
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Upload Video
+              Upload Videos
             </label>
-            {videoPreview ? (
-              <div className="relative">
-                <video
-                  src={videoPreview}
-                  controls
-                  className="w-full h-auto rounded-lg"
+            <div className="flex items-center justify-center w-full mb-4">
+              <label
+                htmlFor="video-dropzone-file"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <VideoIcon />
+                  <p className="mt-2 text-sm text-gray-400">
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">MP4, WEBM, OGG</p>
+                </div>
+                <input
+                  id="video-dropzone-file"
+                  type="file"
+                  className="hidden"
+                  accept="video/*"
+                  multiple
+                  onChange={handleVideoUpload}
                 />
-                <button
-                  onClick={removeVideo}
-                  className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
-                >
-                  <XIcon />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="video-dropzone-file"
-                  className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <VideoIcon />
-                    <p className="mt-2 text-sm text-gray-400">
-                      <span className="font-semibold">Click to upload</span> or
-                      drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">MP4, WEBM, OGG</p>
+              </label>
+            </div>
+            {videoPreviews.length > 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                {videoPreviews.map((preview, index) => (
+                  <div key={preview} className="relative">
+                    <video
+                      src={preview}
+                      controls
+                      className="w-full rounded-lg"
+                    />
+                    <button
+                      onClick={() => removeVideo(index)}
+                      className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
+                    >
+                      <XIcon />
+                    </button>
                   </div>
-                  <input
-                    id="video-dropzone-file"
-                    type="file"
-                    className="hidden"
-                    accept="video/*"
-                    onChange={handleVideoUpload}
-                  />
-                </label>
+                ))}
               </div>
             )}
           </div>
@@ -707,44 +747,48 @@ export default function App() {
         return (
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Upload Audio
+              Upload Audio Files
             </label>
-            {audioPreview ? (
-              <div className="relative">
-                <audio
-                  src={audioPreview}
-                  controls
-                  className="w-full rounded-lg"
+            <div className="flex items-center justify-center w-full mb-4">
+              <label
+                htmlFor="audio-dropzone-file"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <MusicIcon />
+                  <p className="mt-2 text-sm text-gray-400">
+                    <span className="font-semibold">Click to upload</span> or
+                    drag and drop
+                  </p>
+                  <p className="text-xs text-gray-500">MP3, WAV, OGG</p>
+                </div>
+                <input
+                  id="audio-dropzone-file"
+                  type="file"
+                  className="hidden"
+                  accept="audio/*"
+                  multiple
+                  onChange={handleAudioUpload}
                 />
-                <button
-                  onClick={removeAudio}
-                  className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
-                >
-                  <XIcon />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="audio-dropzone-file"
-                  className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <MusicIcon />
-                    <p className="mt-2 text-sm text-gray-400">
-                      <span className="font-semibold">Click to upload</span> or
-                      drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">MP3, WAV, OGG</p>
+              </label>
+            </div>
+            {audioPreviews.length > 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                {audioPreviews.map((preview, index) => (
+                  <div key={preview} className="relative">
+                    <audio
+                      src={preview}
+                      controls
+                      className="w-full rounded-lg"
+                    />
+                    <button
+                      onClick={() => removeAudio(index)}
+                      className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-75"
+                    >
+                      <XIcon />
+                    </button>
                   </div>
-                  <input
-                    id="audio-dropzone-file"
-                    type="file"
-                    className="hidden"
-                    accept="audio/*"
-                    onChange={handleAudioUpload}
-                  />
-                </label>
+                ))}
               </div>
             )}
           </div>
@@ -783,6 +827,25 @@ export default function App() {
             />
           </div>
         );
+      case "Embed":
+        return (
+          <div className="mt-4">
+            <label
+              htmlFor="embed-url"
+              className="block text-sm font-medium text-gray-400 mb-2"
+            >
+              Embed URL
+            </label>
+            <input
+              type="url"
+              id="embed-url"
+              value={embedUrl}
+              onChange={(e) => setEmbedUrl(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., YouTube, Vimeo URL"
+            />
+          </div>
+        );
       default:
         return null;
     }
@@ -790,7 +853,6 @@ export default function App() {
 
   return (
     <div className="bg-gray-900 min-h-screen lg:h-screen lg:overflow-y-hidden text-white font-sans flex flex-col lg:flex-row p-4 sm:p-6 lg:p-8 gap-6 relative">
-      {/* Notification */}
       {notification && (
         <div
           className={`fixed top-5 right-5 z-50 p-4 rounded-lg shadow-lg text-white ${
@@ -800,8 +862,6 @@ export default function App() {
           {notification.message}
         </div>
       )}
-
-      {/* Markdown Help Modal */}
       {isMarkdownHelpOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div
@@ -814,7 +874,8 @@ export default function App() {
                 onClick={() => setIsMarkdownHelpOpen(false)}
                 className="text-gray-400 hover:text-white"
               >
-                <XIcon />
+                {" "}
+                <XIcon />{" "}
               </button>
             </div>
             <ul className="space-y-3">
@@ -835,8 +896,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Main Content */}
       <main className="flex-1 lg:flex-[3] bg-gray-800 p-6 rounded-lg shadow-lg flex flex-col lg:overflow-y-auto">
         <h1 className="text-2xl font-bold mb-4">Write a new post</h1>
         <input
@@ -893,6 +952,12 @@ export default function App() {
               <CodeIcon />
             </button>
             <button
+              onClick={() => handleFormat("math")}
+              className="p-2 rounded hover:bg-gray-700"
+            >
+              <SigmaIcon />
+            </button>
+            <button
               onClick={() => handleFormat("link")}
               className="p-2 rounded hover:bg-gray-700"
             >
@@ -944,19 +1009,19 @@ export default function App() {
               placeholder="Body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              className="w-full bg-gray-800 rounded-b-md p-4 flex-1 resize-none focus:outline-none"
+              className={`w-full bg-gray-800 rounded-b-md p-4 flex-1 resize-none focus:outline-none ${
+                feather === "Quote" ? "italic font-serif text-lg" : ""
+              }`}
             ></textarea>
           )}
           <div className="text-right text-sm text-gray-400 p-2 border-t border-gray-600">
-            Words: {wordCount}
+            {" "}
+            Words: {wordCount}{" "}
           </div>
         </div>
       </main>
-
-      {/* Sidebar */}
-      <aside className="lg:flex-1 bg-gray-800 p-6 rounded-lg shadow-lg h-fit lg:overflow-y-auto">
+      <aside className="lg:flex-1 bg-gray-800 p-6 rounded-lg shadow-lg lg:overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Post Settings</h2>
-
         <div className="mb-4">
           <label
             htmlFor="feather"
@@ -970,17 +1035,12 @@ export default function App() {
             onChange={(e) => setFeather(e.target.value)}
             className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option>Text</option>
-            <option>Photo</option>
-            <option>Video</option>
-            <option>Audio</option>
-            <option>Quote</option>
-            <option>Link</option>
+            <option>Text</option> <option>Photo</option> <option>Video</option>{" "}
+            <option>Audio</option> <option>Quote</option> <option>Link</option>
+            <option>Embed</option>
           </select>
         </div>
-
         {renderFeatherFields()}
-
         <div className="mb-4">
           <label
             htmlFor="category"
@@ -1002,8 +1062,7 @@ export default function App() {
             ))}
           </select>
         </div>
-
-        <div ref={tagsRef} className="relative mb-6">
+        <div ref={tagsRef} className="relative mb-4">
           <label className="block text-sm font-medium text-gray-400 mb-2">
             Tags
           </label>
@@ -1016,9 +1075,10 @@ export default function App() {
                 selectedTags.length > 0 ? "text-white" : "text-gray-500"
               }
             >
+              {" "}
               {selectedTags.length > 0
                 ? `${selectedTags.length} tags selected`
-                : "Select tags..."}
+                : "Select tags..."}{" "}
             </span>
             <ChevronDownIcon />
           </div>
@@ -1050,7 +1110,8 @@ export default function App() {
                           : handleTagSelect(tag)
                       }
                     >
-                      {tag}
+                      {" "}
+                      {tag}{" "}
                     </li>
                   ))
                 ) : (
@@ -1078,12 +1139,28 @@ export default function App() {
             ))}
           </div>
         </div>
-
+        <div className="mb-6">
+          <label
+            htmlFor="rights"
+            className="block text-sm font-medium text-gray-400 mb-2"
+          >
+            Rights / Attribution
+          </label>
+          <input
+            type="text"
+            id="rights"
+            value={rights}
+            onChange={(e) => setRights(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-600 rounded-md p-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="e.g., © 2025 Your Name"
+          />
+        </div>
         <button
           onClick={handlePublish}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
         >
-          Publish
+          {" "}
+          Publish{" "}
         </button>
       </aside>
     </div>

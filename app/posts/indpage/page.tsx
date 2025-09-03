@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { MathJax, MathJaxContext } from "better-react-mathjax";
 
 // --- SVG ICON COMPONENTS ---
 const UserIcon = () => (
@@ -38,6 +39,23 @@ const CalendarIcon = () => (
     <line x1="16" x2="16" y1="2" y2="6" />
     <line x1="8" x2="8" y1="2" y2="6" />
     <line x1="3" x2="21" y1="10" y2="10" />
+  </svg>
+);
+const EyeIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="lucide lucide-eye"
+  >
+    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 const HeartIcon = ({ filled }: { filled: boolean }) => (
@@ -239,98 +257,118 @@ const CopyIcon = () => (
   </svg>
 );
 
+// --- TYPES ---
+type Comment = {
+  id: number;
+  author: string;
+  text: string;
+  timestamp: Date;
+  upvotes: number;
+  userUpvoted: boolean;
+};
+
+type Post = {
+  id: number;
+  title: string;
+  author: string;
+  date: string;
+  feather: string;
+  body: string;
+  tags: string[];
+  likes: number;
+  views: number;
+  rights: string;
+  media: string[];
+  embedUrl: string;
+  comments: Comment[];
+};
+
 // --- MOCK DATA ---
-const mockPosts = [
-  {
-    id: 1,
-    title: "Welcome to the Future of Blogging",
-    author: "Admin",
-    date: "2024-01-15",
-    feather: "Photo",
-    body: "Chyrp Lite Reimagine brings a fresh perspective to content management. With its modern interface and powerful features, creating and managing content has never been easier. This post showcases a photo gallery feature.",
-    tags: ["blogging", "cms", "web", "react"],
-    likes: 24,
-    media: [
-      "https://placehold.co/800x600/1a202c/ffffff?text=Image+1",
-      "https://placehold.co/800x600/2d3748/ffffff?text=Image+2",
-      "https://placehold.co/800x600/4a5568/ffffff?text=Image+3",
-    ],
-    comments: [
-      {
-        id: 101,
-        author: "Jane Doe",
-        text: "This is a fantastic update! The new interface is so clean.",
-        timestamp: new Date(Date.now() - 3600000 * 2),
-        upvotes: 15,
-        userUpvoted: false,
-      },
-      {
-        id: 102,
-        author: "John Smith",
-        text: "I'm really looking forward to trying this out. The gallery looks great.",
-        timestamp: new Date(Date.now() - 3600000 * 5),
-        upvotes: 8,
-        userUpvoted: true,
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "A Deep Dive into Modern Video Streaming",
-    author: "VideoGuru",
-    date: "2024-02-20",
-    feather: "Video",
-    body: "Video content is king. In this post, we explore the complexities of modern video streaming, from codecs to delivery networks. Check out the example video below.",
-    tags: ["video", "streaming", "tech"],
-    likes: 152,
-    media: [
-      "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    ],
-    comments: [
-      {
-        id: 201,
-        author: "Codec Buff",
-        text: "Great overview! You should cover AV1 next.",
-        timestamp: new Date(Date.now() - 3600000 * 10),
-        upvotes: 22,
-        userUpvoted: false,
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "The Power of a Good Quote",
-    author: "PhilosopherMax",
-    date: "2024-03-10",
-    feather: "Quote",
-    body: "The journey of a thousand miles begins with a single step.",
-    tags: ["inspiration", "philosophy", "life"],
-    likes: 431,
-    media: [],
-    comments: [
-      {
-        id: 301,
-        author: "Seeker",
-        text: "So true! This is my favorite quote.",
-        timestamp: new Date(Date.now() - 3600000 * 24),
-        upvotes: 50,
-        userUpvoted: true,
-      },
-      {
-        id: 302,
-        author: "Wanderer",
-        text: "Lao Tzu has so much wisdom.",
-        timestamp: new Date(Date.now() - 3600000 * 48),
-        upvotes: 33,
-        userUpvoted: false,
-      },
-    ],
-  },
-];
+const initialMockPosts: Post[] = JSON.parse(
+  JSON.stringify([
+    {
+      id: 1,
+      title: "Welcome to the Future of Blogging",
+      author: "Admin",
+      date: "2024-01-15",
+      feather: "Photo",
+      body: "Chyrp Lite Reimagine brings a fresh perspective to content management. With its modern interface and powerful features, creating and managing content has never been easier. This post showcases a photo gallery feature.",
+      tags: ["blogging", "cms", "web", "react"],
+      likes: 24,
+      views: 1345,
+      rights: "© 2025 Admin. All rights reserved.",
+      media: [
+        "https://placehold.co/800x600/1a202c/ffffff?text=Image+1",
+        "https://placehold.co/800x600/2d3748/ffffff?text=Image+2",
+        "https://placehold.co/800x600/4a5568/ffffff?text=Image+3",
+      ],
+      embedUrl: "",
+      comments: [
+        {
+          id: 101,
+          author: "Jane Doe",
+          text: "This is a fantastic update! The new interface is so clean.",
+          timestamp: new Date(Date.now() - 3600000 * 2),
+          upvotes: 15,
+          userUpvoted: false,
+        },
+        {
+          id: 102,
+          author: "John Smith",
+          text: "I'm really looking forward to trying this out. The gallery looks great.",
+          timestamp: new Date(Date.now() - 3600000 * 5),
+          upvotes: 8,
+          userUpvoted: true,
+        },
+      ],
+    },
+    {
+      id: 2,
+      title: "Exploring Mathematical Concepts",
+      author: "Dr. Math",
+      date: "2024-04-01",
+      feather: "Text",
+      body: "Today we explore the famous equation, $E=mc^2$. It's a cornerstone of modern physics.",
+      tags: ["science", "physics", "math"],
+      likes: 256,
+      views: 8302,
+      rights: "Creative Commons BY-NC",
+      media: [],
+      embedUrl: "",
+      comments: [
+        {
+          id: 201,
+          author: "Student",
+          text: "I finally understand this!",
+          timestamp: new Date(Date.now() - 3600000 * 10),
+          upvotes: 22,
+          userUpvoted: false,
+        },
+      ],
+    },
+    {
+      id: 3,
+      title: "How to Embed Content",
+      author: "EmbedMaster",
+      date: "2024-05-15",
+      feather: "Embed",
+      body: "Embedding content is easy! Here is a video embedded directly from YouTube.",
+      tags: ["embed", "youtube", "web"],
+      likes: 88,
+      views: 4100,
+      rights: "",
+      media: [],
+      embedUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      comments: [],
+    },
+  ])
+);
 
 // --- HELPER FUNCTIONS ---
 const timeAgo = (date: Date): string => {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  const seconds = Math.floor(
+    (new Date().getTime() - new Date(date).getTime()) / 1000
+  );
   let interval = seconds / 31536000;
   if (interval > 1) return Math.floor(interval) + " years ago";
   interval = seconds / 2592000;
@@ -344,42 +382,81 @@ const timeAgo = (date: Date): string => {
   return Math.floor(seconds) + " seconds ago";
 };
 
-const renderMarkdown = (text: string) => {
-  const html = text.replace(/\n/g, "<br />");
-  return { __html: html };
+const getYouTubeEmbedUrl = (url: string) => {
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11
+    ? `https://www.youtube.com/embed/${match[2]}`
+    : null;
 };
 
-// --- TYPES ---
-type Post = (typeof mockPosts)[0];
-type View =
-  | { type: "single"; post: Post }
-  | { type: "filtered"; tag: string; posts: Post[] };
+// --- CHILD COMPONENTS ---
+
+const CommentForm = ({ onSubmit }: { onSubmit: (text: string) => void }) => {
+  const [commentText, setCommentText] = useState("");
+
+  const handleSubmit = () => {
+    if (commentText.trim() === "") return;
+    onSubmit(commentText);
+    setCommentText(""); // Clear textarea after submit
+  };
+
+  return (
+    <div className="mb-6">
+      <textarea
+        value={commentText}
+        onChange={(e) => setCommentText(e.target.value)}
+        placeholder="Write a comment..."
+        className="w-full bg-gray-800 border border-gray-700 rounded-md p-3 mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+        rows={3}
+      />
+      <div className="flex justify-end">
+        <button
+          onClick={handleSubmit}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
+        >
+          {" "}
+          Post Comment{" "}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // --- MAIN COMPONENT ---
 export default function BlogPostViewer() {
+  const [postsData, setPostsData] = useState<Post[]>(initialMockPosts);
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
-  const [view, setView] = useState<View>({
-    type: "single",
-    post: mockPosts[currentPostIndex],
-  });
+  const [viewMode, setViewMode] = useState<"single" | "filtered">("single");
+  const [filteredInfo, setFilteredInfo] = useState<{
+    tag: string;
+    posts: Post[];
+  } | null>(null);
   const [userLiked, setUserLiked] = useState(false);
-  const [newComment, setNewComment] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const shareModalRef = useRef<HTMLDivElement>(null);
+  const [lightboxImageIndex, setLightboxImageIndex] = useState<number | null>(
+    null
+  );
+
+  const post = postsData[currentPostIndex];
+
+  const mathJaxConfig = {
+    loader: { load: ["input/tex", "output/svg"] },
+    tex: { inlineMath: [["$", "$"]] },
+  };
 
   useEffect(() => {
-    if (view.type === "single") {
-      // Find index of the post in the main array to keep pagination correct
-      const postIndex = mockPosts.findIndex((p) => p.id === view.post.id);
-      if (postIndex !== -1) {
-        setCurrentPostIndex(postIndex);
-      }
-    }
-    // Reset state when view changes
+    setPostsData((prevPosts) =>
+      prevPosts.map((p, index) =>
+        index === currentPostIndex ? { ...p, views: (p.views || 0) + 1 } : p
+      )
+    );
+    setViewMode("single");
     setUserLiked(false);
-    setNewComment("");
-  }, [view]);
+  }, [currentPostIndex]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -396,116 +473,111 @@ export default function BlogPostViewer() {
     };
   }, []);
 
-  const handleLike = () => {
-    if (view.type !== "single") return;
-
-    // Note: This only updates the view state, not the original mockPosts array
-    setView((v) => {
-      if (v.type === "single") {
-        return {
-          ...v,
-          post: {
-            ...v.post,
-            likes: userLiked ? v.post.likes - 1 : v.post.likes + 1,
-          },
-        };
+  const renderMarkdown = (text: string) => {
+    const parts = text.split(/(\$.*?\$)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith("$") && part.endsWith("$")) {
+        // Pass the content *with* the delimiters to MathJax
+        return (
+          <MathJax key={index} inline>
+            {part}
+          </MathJax>
+        );
       }
-      return v;
+      // Simple newline handling
+      return part.split("\n").map((line, i) => (
+        <React.Fragment key={`${index}-${i}`}>
+          {line}
+          {i < part.split("\n").length - 1 && <br />}
+        </React.Fragment>
+      ));
     });
+  };
+
+  const handleLike = () => {
+    setPostsData((prevPosts) =>
+      prevPosts.map((p, index) =>
+        index === currentPostIndex
+          ? { ...p, likes: userLiked ? p.likes - 1 : p.likes + 1 }
+          : p
+      )
+    );
     setUserLiked(!userLiked);
   };
 
   const handleCommentUpvote = (commentId: number) => {
-    if (view.type !== "single") return;
-
-    setView((v) => {
-      if (v.type === "single") {
-        return {
-          ...v,
-          post: {
-            ...v.post,
-            comments: v.post.comments.map((c) => {
-              if (c.id === commentId) {
-                return {
-                  ...c,
-                  upvotes: c.userUpvoted ? c.upvotes - 1 : c.upvotes + 1,
-                  userUpvoted: !c.userUpvoted,
-                };
-              }
-              return c;
-            }),
-          },
-        };
-      }
-      return v;
-    });
+    setPostsData((prevPosts) =>
+      prevPosts.map((p: Post, index: number) => {
+        if (index === currentPostIndex) {
+          return {
+            ...p,
+            comments: p.comments.map((c: Comment) =>
+              c.id === commentId
+                ? {
+                    ...c,
+                    upvotes: c.userUpvoted ? c.upvotes - 1 : c.upvotes + 1,
+                    userUpvoted: !c.userUpvoted,
+                  }
+                : c
+            ),
+          };
+        }
+        return p;
+      })
+    );
   };
 
-  const handlePostComment = () => {
-    if (newComment.trim() === "" || view.type !== "single") return;
-
-    const comment = {
+  const handlePostComment = (text: string) => {
+    const comment: Comment = {
       id: Date.now(),
       author: "Guest User",
-      text: newComment,
+      text,
       timestamp: new Date(),
       upvotes: 0,
       userUpvoted: false,
     };
-
-    setView((v) => {
-      if (v.type === "single") {
-        return {
-          ...v,
-          post: { ...v.post, comments: [comment, ...v.post.comments] },
-        };
-      }
-      return v;
-    });
-    setNewComment("");
+    setPostsData((prevPosts) =>
+      prevPosts.map((p, index) =>
+        index === currentPostIndex
+          ? { ...p, comments: [comment, ...p.comments] }
+          : p
+      )
+    );
   };
 
   const handleShare = async () => {
-    if (view.type !== "single") return;
-
     const shareData = {
-      title: view.post.title,
-      text: `Check out this post: ${view.post.title}`,
+      title: post.title,
+      text: `Check out this post: ${post.title}`,
       url: window.location.href,
     };
-
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-        console.log("Post shared successfully");
       } catch (err) {
         console.error("Error sharing post:", err);
       }
     } else {
-      // Fallback to custom share modal
       setIsShareModalOpen(true);
     }
   };
 
   const handleNextPost = () => {
-    if (currentPostIndex < mockPosts.length - 1) {
-      const newIndex = currentPostIndex + 1;
-      setCurrentPostIndex(newIndex);
-      setView({ type: "single", post: mockPosts[newIndex] });
+    if (currentPostIndex < postsData.length - 1) {
+      setCurrentPostIndex(currentPostIndex + 1);
     }
   };
 
   const handlePrevPost = () => {
     if (currentPostIndex > 0) {
-      const newIndex = currentPostIndex - 1;
-      setCurrentPostIndex(newIndex);
-      setView({ type: "single", post: mockPosts[newIndex] });
+      setCurrentPostIndex(currentPostIndex - 1);
     }
   };
 
   const handleTagClick = (tag: string) => {
-    const filteredPosts = mockPosts.filter((p) => p.tags.includes(tag));
-    setView({ type: "filtered", tag, posts: filteredPosts });
+    const filtered = postsData.filter((p) => p.tags.includes(tag));
+    setFilteredInfo({ tag, posts: filtered });
+    setViewMode("filtered");
   };
 
   const handleCopyToClipboard = () => {
@@ -515,17 +587,18 @@ export default function BlogPostViewer() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const renderFeatherContent = (post: Post) => {
-    switch (post.feather) {
+  const renderFeatherContent = (postToRender: Post) => {
+    switch (postToRender.feather) {
       case "Photo":
         return (
           <div className="my-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {post.media.map((url, index) => (
+            {postToRender.media.map((url: string, index: number) => (
               <img
                 key={index}
                 src={url}
                 alt={`Post image ${index + 1}`}
-                className="rounded-lg object-cover w-full h-full"
+                className="rounded-lg object-cover w-full h-full cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setLightboxImageIndex(index)}
               />
             ))}
           </div>
@@ -533,67 +606,82 @@ export default function BlogPostViewer() {
       case "Video":
         return (
           <div className="my-6">
-            {post.media.map((url, index) => (
+            {" "}
+            {postToRender.media.map((url: string, index: number) => (
               <video
                 key={index}
                 src={url}
                 controls
                 className="rounded-lg w-full mb-4"
               />
-            ))}
+            ))}{" "}
           </div>
         );
       case "Audio":
         return (
           <div className="my-6 space-y-4">
-            {post.media.map((url, index) => (
+            {" "}
+            {postToRender.media.map((url: string, index: number) => (
               <audio key={index} src={url} controls className="w-full" />
-            ))}
+            ))}{" "}
           </div>
         );
       case "Quote":
         return (
           <blockquote className="my-6 p-4 border-l-4 border-blue-500 bg-gray-800 italic text-xl">
-            "{post.body}"
+            {" "}
+            "{postToRender.body}"{" "}
           </blockquote>
+        );
+      case "Embed":
+        const embedUrl = getYouTubeEmbedUrl(postToRender.embedUrl);
+        return embedUrl ? (
+          <div className="my-6 aspect-w-16 aspect-h-9">
+            <iframe
+              src={embedUrl}
+              title={postToRender.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full rounded-lg min-h-[400px]"
+            ></iframe>
+          </div>
+        ) : (
+          <p className="my-6 text-red-500">Invalid embed URL.</p>
         );
       default:
         return null;
     }
   };
 
-  const SinglePostView = ({ post }: { post: Post }) => (
+  const SinglePostView = ({ postData }: { postData: Post }) => (
     <>
-      {/* Post Header */}
       <header className="mb-8">
-        <h1 className="text-4xl sm:text-5xl font-bold mb-4">{post.title}</h1>
+        <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+          {postData.title}
+        </h1>
         <div className="flex items-center text-gray-400 text-sm gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <UserIcon />
-            <span>{post.author}</span>
+            {" "}
+            <UserIcon /> <span>{postData.author}</span>{" "}
           </div>
           <div className="flex items-center gap-2">
-            <CalendarIcon />
-            <span>{post.date}</span>
+            {" "}
+            <CalendarIcon /> <span>{postData.date}</span>{" "}
           </div>
           <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded-md text-xs">
-            {post.feather}
+            {postData.feather}
           </span>
         </div>
       </header>
-
-      {/* Post Content */}
       <article>
-        {renderFeatherContent(post)}
-        <div
-          className="prose prose-invert max-w-none text-lg leading-relaxed"
-          dangerouslySetInnerHTML={renderMarkdown(post.body)}
-        />
+        {renderFeatherContent(postData)}
+        <div className="prose prose-invert max-w-none text-lg leading-relaxed">
+          {renderMarkdown(postData.body)}
+        </div>
       </article>
-
-      {/* Tags */}
       <div className="my-8 flex flex-wrap gap-2">
-        {post.tags.map((tag) => (
+        {postData.tags.map((tag) => (
           <button
             key={tag}
             onClick={() => handleTagClick(tag)}
@@ -603,79 +691,75 @@ export default function BlogPostViewer() {
           </button>
         ))}
       </div>
-
-      {/* Interaction Bar */}
       <div className="py-4 border-t border-b border-gray-700 flex items-center justify-between text-gray-400">
         <div className="flex items-center gap-6">
           <button
             onClick={handleLike}
             className="flex items-center gap-2 hover:text-white transition-colors"
           >
-            <HeartIcon filled={userLiked} />
-            <span>{post.likes}</span>
+            {" "}
+            <HeartIcon filled={userLiked} /> <span>{postData.likes}</span>{" "}
           </button>
           <div className="flex items-center gap-2">
-            <MessageSquareIcon />
-            <span>{post.comments.length} Comments</span>
+            {" "}
+            <MessageSquareIcon />{" "}
+            <span>{postData.comments.length} Comments</span>{" "}
+          </div>
+          <div className="flex items-center gap-2">
+            {" "}
+            <EyeIcon /> <span>
+              {postData.views.toLocaleString()} Views
+            </span>{" "}
           </div>
         </div>
         <button
           onClick={handleShare}
           className="flex items-center gap-2 hover:text-white transition-colors"
         >
-          <ShareIcon />
-          <span>Share</span>
+          {" "}
+          <ShareIcon /> <span>Share</span>{" "}
         </button>
       </div>
-
-      {/* Comments Section */}
       <section className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Comments</h2>
-        <div className="mb-6">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-md p-3 mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            rows={3}
-          />
-          <div className="flex justify-end">
-            <button
-              onClick={handlePostComment}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition-colors"
-            >
-              Post Comment
-            </button>
-          </div>
-        </div>
+        <CommentForm onSubmit={handlePostComment} />
         <div className="space-y-6">
-          {post.comments.map((comment) => (
+          {postData.comments.map((comment: Comment) => (
             <div key={comment.id} className="flex gap-4">
               <div className="w-10 h-10 bg-gray-700 rounded-full flex-shrink-0 flex items-center justify-center font-bold">
-                {comment.author.charAt(0)}
+                {" "}
+                {comment.author.charAt(0)}{" "}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between items-center">
-                  <p className="font-bold">{comment.author}</p>
+                  {" "}
+                  <p className="font-bold">{comment.author}</p>{" "}
                   <p className="text-xs text-gray-500">
                     {timeAgo(comment.timestamp)}
-                  </p>
+                  </p>{" "}
                 </div>
                 <p className="text-gray-300 mt-1">{comment.text}</p>
                 <div className="mt-2">
+                  {" "}
                   <button
                     onClick={() => handleCommentUpvote(comment.id)}
                     className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
                   >
-                    <ThumbsUpIcon filled={comment.userUpvoted} />
-                    <span>{comment.upvotes}</span>
-                  </button>
+                    {" "}
+                    <ThumbsUpIcon filled={comment.userUpvoted} />{" "}
+                    <span>{comment.upvotes}</span>{" "}
+                  </button>{" "}
                 </div>
               </div>
             </div>
           ))}
         </div>
       </section>
+      {postData.rights && (
+        <footer className="mt-12 pt-4 border-t border-gray-700 text-center text-sm text-gray-500">
+          <p>{postData.rights}</p>
+        </footer>
+      )}
     </>
   );
 
@@ -692,28 +776,36 @@ export default function BlogPostViewer() {
           Posts tagged with <span className="text-blue-400">#{tag}</span>
         </h1>
         <button
-          onClick={() =>
-            setView({ type: "single", post: mockPosts[currentPostIndex] })
-          }
+          onClick={() => {
+            setViewMode("single");
+            setFilteredInfo(null);
+          }}
           className="text-sm text-blue-400 hover:underline"
         >
-          &larr; Back to Post
+          {" "}
+          &larr; Back to Current Post{" "}
         </button>
       </div>
       <div className="space-y-8">
-        {posts.map((p) => (
+        {posts.map((p: Post) => (
           <div key={p.id} className="bg-gray-800 p-6 rounded-lg">
             <h2 className="text-2xl font-bold mb-2">{p.title}</h2>
             <div className="flex items-center text-gray-400 text-xs gap-4 mb-4">
-              <span>by {p.author}</span>
-              <span>on {p.date}</span>
+              {" "}
+              <span>by {p.author}</span> <span>on {p.date}</span>{" "}
             </div>
             <p className="text-gray-300 mb-4">{p.body.substring(0, 150)}...</p>
             <button
-              onClick={() => setView({ type: "single", post: p })}
+              onClick={() => {
+                const postIndex = postsData.findIndex(
+                  (mock) => mock.id === p.id
+                );
+                if (postIndex !== -1) setCurrentPostIndex(postIndex);
+              }}
               className="font-bold text-blue-400 hover:underline"
             >
-              Read More &rarr;
+              {" "}
+              Read More &rarr;{" "}
             </button>
           </div>
         ))}
@@ -730,7 +822,6 @@ export default function BlogPostViewer() {
   }) => {
     const url = window.location.href;
     const text = `Check out this post: ${post.title}`;
-
     const shareLinks = {
       twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
         url
@@ -747,7 +838,6 @@ export default function BlogPostViewer() {
         text
       )}%20${encodeURIComponent(url)}`,
     };
-
     return (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
         <div
@@ -755,13 +845,15 @@ export default function BlogPostViewer() {
           className="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm"
         >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Share Post</h2>
+            {" "}
+            <h2 className="text-xl font-bold">Share Post</h2>{" "}
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white"
             >
-              <XIcon />
-            </button>
+              {" "}
+              <XIcon />{" "}
+            </button>{" "}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <a
@@ -770,8 +862,8 @@ export default function BlogPostViewer() {
               rel="noopener noreferrer"
               className="flex flex-col items-center justify-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <TwitterIcon />
-              <span className="mt-2 text-sm">Twitter</span>
+              {" "}
+              <TwitterIcon /> <span className="mt-2 text-sm">Twitter</span>{" "}
             </a>
             <a
               href={shareLinks.facebook}
@@ -779,8 +871,10 @@ export default function BlogPostViewer() {
               rel="noopener noreferrer"
               className="flex flex-col items-center justify-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <FacebookIcon />
-              <span className="mt-2 text-sm">Facebook</span>
+              {" "}
+              <FacebookIcon /> <span className="mt-2 text-sm">
+                Facebook
+              </span>{" "}
             </a>
             <a
               href={shareLinks.linkedin}
@@ -788,8 +882,10 @@ export default function BlogPostViewer() {
               rel="noopener noreferrer"
               className="flex flex-col items-center justify-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <LinkedinIcon />
-              <span className="mt-2 text-sm">LinkedIn</span>
+              {" "}
+              <LinkedinIcon /> <span className="mt-2 text-sm">
+                LinkedIn
+              </span>{" "}
             </a>
             <a
               href={shareLinks.whatsapp}
@@ -797,81 +893,161 @@ export default function BlogPostViewer() {
               rel="noopener noreferrer"
               className="flex flex-col items-center justify-center p-4 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <WhatsappIcon />
-              <span className="mt-2 text-sm">WhatsApp</span>
+              {" "}
+              <WhatsappIcon /> <span className="mt-2 text-sm">
+                WhatsApp
+              </span>{" "}
             </a>
           </div>
           <div className="mt-4">
+            {" "}
             <button
               onClick={handleCopyToClipboard}
               className="w-full flex items-center justify-center gap-2 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <CopyIcon />
-              <span>Copy Link</span>
-            </button>
+              {" "}
+              <CopyIcon /> <span>Copy Link</span>{" "}
+            </button>{" "}
           </div>
         </div>
       </div>
     );
   };
 
-  return (
-    <div className="bg-gray-900 min-h-screen text-white font-sans">
-      {/* Notification */}
-      {notification && (
-        <div className="fixed top-5 right-5 z-50 p-4 rounded-lg shadow-lg bg-green-600 text-white">
-          {notification}
+  const Lightbox = ({
+    images,
+    startIndex,
+    onClose,
+  }: {
+    images: string[];
+    startIndex: number;
+    onClose: () => void;
+  }) => {
+    const [currentIndex, setCurrentIndex] = useState(startIndex);
+
+    const handleNext = () =>
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+    const handlePrev = () =>
+      setCurrentIndex(
+        (prevIndex) => (prevIndex - 1 + images.length) % images.length
+      );
+
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "ArrowRight") handleNext();
+        if (e.key === "ArrowLeft") handlePrev();
+        if (e.key === "Escape") onClose();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
+
+    return (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+        onClick={onClose}
+      >
+        <button
+          className="absolute top-4 right-4 text-white p-2 rounded-full hover:bg-white/20"
+          onClick={onClose}
+        >
+          <XIcon />
+        </button>
+        <button
+          className="absolute left-4 p-2 rounded-full hover:bg-white/20 text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrev();
+          }}
+        >
+          <ChevronLeftIcon />
+        </button>
+        <button
+          className="absolute right-4 p-2 rounded-full hover:bg-white/20 text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNext();
+          }}
+        >
+          <ChevronRightIcon />
+        </button>
+        <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <img
+            src={images[currentIndex]}
+            alt={`Lightbox image ${currentIndex + 1}`}
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+          />
         </div>
-      )}
-
-      {/* Share Modal */}
-      {isShareModalOpen && view.type === "single" && (
-        <ShareModal
-          post={view.post}
-          onClose={() => setIsShareModalOpen(false)}
-        />
-      )}
-
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Top Navigation */}
-        <nav className="flex justify-between items-center mb-8">
-          <button
-            className="p-2 rounded-full hover:bg-gray-800 transition-colors"
-            aria-label="Back to home"
-          >
-            <ArrowLeftIcon />
-          </button>
-          {view.type === "single" && (
-            <div className="flex items-center gap-2 text-gray-400">
-              <span className="text-sm">
-                {currentPostIndex + 1} of {mockPosts.length}
-              </span>
-              <button
-                onClick={handlePrevPost}
-                disabled={currentPostIndex === 0}
-                className="p-2 rounded-full hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                aria-label="Previous post"
-              >
-                <ChevronLeftIcon />
-              </button>
-              <button
-                onClick={handleNextPost}
-                disabled={currentPostIndex === mockPosts.length - 1}
-                className="p-2 rounded-full hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                aria-label="Next post"
-              >
-                <ChevronRightIcon />
-              </button>
-            </div>
-          )}
-        </nav>
-
-        {view.type === "single" ? (
-          <SinglePostView post={view.post} />
-        ) : (
-          <FilteredPostsView tag={view.tag} posts={view.posts} />
-        )}
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <MathJaxContext config={mathJaxConfig}>
+      <div className="bg-gray-900 min-h-screen text-white font-sans">
+        {notification && (
+          <div className="fixed top-5 right-5 z-50 p-4 rounded-lg shadow-lg bg-green-600 text-white">
+            {" "}
+            {notification}{" "}
+          </div>
+        )}
+        {isShareModalOpen && (
+          <ShareModal post={post} onClose={() => setIsShareModalOpen(false)} />
+        )}
+        {viewMode === "single" &&
+          post.feather === "Photo" &&
+          lightboxImageIndex !== null && (
+            <Lightbox
+              images={post.media}
+              startIndex={lightboxImageIndex}
+              onClose={() => setLightboxImageIndex(null)}
+            />
+          )}
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <nav className="flex justify-between items-center mb-8">
+            <button
+              className="p-2 rounded-full hover:bg-gray-800 transition-colors"
+              aria-label="Back to home"
+            >
+              {" "}
+              <ArrowLeftIcon />{" "}
+            </button>
+            {viewMode === "single" && (
+              <div className="flex items-center gap-2 text-gray-400">
+                <span className="text-sm">
+                  {currentPostIndex + 1} of {postsData.length}
+                </span>
+                <button
+                  onClick={handlePrevPost}
+                  disabled={currentPostIndex === 0}
+                  className="p-2 rounded-full hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous post"
+                >
+                  {" "}
+                  <ChevronLeftIcon />{" "}
+                </button>
+                <button
+                  onClick={handleNextPost}
+                  disabled={currentPostIndex === postsData.length - 1}
+                  className="p-2 rounded-full hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next post"
+                >
+                  {" "}
+                  <ChevronRightIcon />{" "}
+                </button>
+              </div>
+            )}
+          </nav>
+          {viewMode === "single" ? (
+            <SinglePostView postData={post} />
+          ) : (
+            <FilteredPostsView
+              tag={filteredInfo!.tag}
+              posts={filteredInfo!.posts}
+            />
+          )}
+        </div>
+      </div>
+    </MathJaxContext>
   );
 }
