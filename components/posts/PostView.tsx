@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import PostHeader from "./PostHeader";
 import PostContent from "./PostContent";
 import PostInteractions from "./PostInteractions";
@@ -9,137 +9,17 @@ import PostTags from "./PostTags";
 import CommentsSection from "./CommentsSection";
 import ShareModal from "./ShareModal";
 import { Post, Comment } from "@/types/post";
+import { feedAPI, ApiError } from "@/lib/api";
 
 interface PostViewProps {
   postId?: string;
   onBack?: () => void;
 }
 
-// Mock data - replace with actual API calls
-const mockPosts: Post[] = [
-  {
-    id: "1",
-    title: "Getting Started with React and TypeScript",
-    type: "text",
-    author: {
-      name: "John Doe",
-      avatar: "/api/placeholder/40/40",
-      id: "user1",
-    },
-    createdAt: new Date(2024, 7, 15),
-    updatedAt: new Date(2024, 7, 15),
-    status: "published",
-    tags: ["react", "typescript", "tutorial"],
-    category: "Development",
-    likes: 42,
-    shares: 12,
-    saves: 8,
-    viewCount: 1250,
-    content: {
-      body: "This is a comprehensive guide to getting started with React and TypeScript. In this tutorial, we'll cover the basics of setting up a React project with TypeScript, understanding the benefits of type safety, and building your first components with proper typing.\n\nTypeScript brings static typing to JavaScript, which helps catch errors early in development and provides better IDE support with autocomplete and refactoring tools.",
-    },
-    comments: [
-      {
-        id: "c1",
-        author: {
-          name: "Alice Smith",
-          avatar: "/api/placeholder/40/40",
-          id: "user2",
-        },
-        content:
-          "Great tutorial! This really helped me understand TypeScript better.",
-        createdAt: new Date(2024, 7, 16),
-        likes: 5,
-        replies: [],
-      },
-      {
-        id: "c2",
-        author: {
-          name: "Bob Johnson",
-          avatar: "/api/placeholder/40/40",
-          id: "user3",
-        },
-        content: "Could you add more examples about generic types?",
-        createdAt: new Date(2024, 7, 17),
-        likes: 2,
-        replies: [
-          {
-            id: "r1",
-            author: {
-              name: "John Doe",
-              avatar: "/api/placeholder/40/40",
-              id: "user1",
-            },
-            content:
-              "That's a great suggestion! I'll add a section about generics in the next update.",
-            createdAt: new Date(2024, 7, 17),
-            likes: 3,
-            replies: [],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "2",
-    title: "Beautiful Landscape Photography",
-    type: "photo",
-    author: {
-      name: "Jane Smith",
-      avatar: "/api/placeholder/40/40",
-      id: "user2",
-    },
-    createdAt: new Date(2024, 7, 12),
-    updatedAt: new Date(2024, 7, 12),
-    status: "published",
-    tags: ["photography", "landscape", "nature"],
-    category: "Photography",
-    likes: 89,
-    shares: 25,
-    saves: 34,
-    viewCount: 2100,
-    content: {
-      images: [
-        "/api/placeholder/800/600",
-        "/api/placeholder/800/600",
-        "/api/placeholder/800/600",
-      ],
-      caption:
-        "Captured during my recent trip to the mountains. The golden hour light was absolutely perfect!",
-    },
-    comments: [],
-  },
-  {
-    id: "3",
-    title: "My Favorite Podcast Episode",
-    type: "audio",
-    author: {
-      name: "Mike Johnson",
-      avatar: "/api/placeholder/40/40",
-      id: "user3",
-    },
-    createdAt: new Date(2024, 7, 10),
-    updatedAt: new Date(2024, 7, 10),
-    status: "published",
-    tags: ["podcast", "technology", "interview"],
-    category: "Audio",
-    likes: 23,
-    shares: 8,
-    saves: 15,
-    viewCount: 890,
-    content: {
-      audioUrl: "/api/placeholder/audio.mp3",
-      duration: "45:32",
-      audioDescription:
-        "An insightful conversation about the future of web development with industry experts.",
-    },
-    comments: [],
-  },
-];
-
 const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [userInteractions, setUserInteractions] = useState({
     liked: false,
     saved: false,
@@ -148,13 +28,35 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    // Find the post by ID
-    const post = mockPosts.find((p) => p.id === postId);
-    const index = mockPosts.findIndex((p) => p.id === postId);
+    const fetchPost = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    if (post) {
-      setCurrentPost(post);
-      setCurrentIndex(index);
+        console.log("Fetching post with ID:", postId);
+        const post = await feedAPI.getPost(postId);
+        console.log("Fetched post:", post);
+
+        setCurrentPost(post);
+      } catch (err) {
+        console.error("Error fetching post:", err);
+
+        if (err instanceof ApiError) {
+          if (err.status === 404) {
+            setError("Post not found");
+          } else {
+            setError(err.message || "Failed to load post");
+          }
+        } else {
+          setError("An unexpected error occurred");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (postId) {
+      fetchPost();
     }
   }, [postId]);
 
@@ -221,21 +123,82 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   };
 
   const handleNextPost = () => {
-    if (currentIndex < mockPosts.length - 1) {
-      const nextPost = mockPosts[currentIndex + 1];
-      setCurrentPost(nextPost);
-      setCurrentIndex(currentIndex + 1);
-    }
+    // Navigation between posts removed since we're fetching individual posts
+    // This could be implemented later with a posts list context or additional API calls
+    console.log("Next post navigation not implemented");
   };
 
   const handlePrevPost = () => {
-    if (currentIndex > 0) {
-      const prevPost = mockPosts[currentIndex - 1];
-      setCurrentPost(prevPost);
-      setCurrentIndex(currentIndex - 1);
-    }
+    // Navigation between posts removed since we're fetching individual posts
+    // This could be implemented later with a posts list context or additional API calls
+    console.log("Previous post navigation not implemented");
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2 text-text-secondary">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading post...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-text-primary text-lg mb-2">
+            Error Loading Post
+          </div>
+          <div className="text-text-secondary mb-6">{error}</div>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span>Go Back</span>
+            </button>
+            <button
+              onClick={() => {
+                setError(null);
+                const fetchPost = async () => {
+                  try {
+                    setLoading(true);
+                    const post = await feedAPI.getPost(postId);
+                    setCurrentPost(post);
+                  } catch (err) {
+                    console.error("Retry failed:", err);
+                    if (err instanceof ApiError) {
+                      setError(
+                        err.status === 404
+                          ? "Post not found"
+                          : err.message || "Failed to load post"
+                      );
+                    } else {
+                      setError("An unexpected error occurred");
+                    }
+                  } finally {
+                    setLoading(false);
+                  }
+                };
+                fetchPost();
+              }}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Post not found state
   if (!currentPost) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -273,24 +236,9 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
             <span className="hidden sm:inline">Back</span>
           </button>
 
+          {/* Removed post navigation since we're fetching individual posts */}
           <div className="flex items-center gap-4">
-            <span className="text-sm text-text-secondary">
-              {currentIndex + 1} of {mockPosts.length}
-            </span>
-            <button
-              onClick={handlePrevPost}
-              disabled={currentIndex === 0}
-              className="p-2 rounded-lg hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={handleNextPost}
-              disabled={currentIndex === mockPosts.length - 1}
-              className="p-2 rounded-lg hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
+            <span className="text-sm text-text-secondary">Post Details</span>
           </div>
         </nav>
 

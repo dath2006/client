@@ -57,9 +57,12 @@ const SignUpPage = () => {
     }
 
     try {
+      // Extract username from email (part before @)
+      const username = email.split("@")[0];
+
       // Call your FastAPI backend to register the user
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_FASTAPI_URL}/auth/signup`,
+        `${process.env.NEXT_PUBLIC_FASTAPI_URL}/api/v1/auth/signup`,
         {
           method: "POST",
           headers: {
@@ -68,6 +71,7 @@ const SignUpPage = () => {
           body: JSON.stringify({
             name,
             email,
+            username,
             password,
           }),
         }

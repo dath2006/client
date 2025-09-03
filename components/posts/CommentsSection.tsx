@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Comment } from "@/types/post";
-import { Heart, MessageSquare, MoreHorizontal, Send } from "lucide-react";
+import { Heart, MoreHorizontal, Send, MessageSquare } from "lucide-react";
 
 interface CommentsSectionProps {
   comments: Comment[];
@@ -14,12 +14,12 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
   onCommentSubmit,
 }) => {
   const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
   const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
 
   const timeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    const seconds = Math.floor(
+      (new Date().getTime() - new Date(date).getTime()) / 1000
+    );
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
     interval = seconds / 2592000;
@@ -40,19 +40,6 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     }
   };
 
-  const handleSubmitReply = (commentId: string) => {
-    if (replyContent.trim()) {
-      // In a real app, this would handle replies differently
-      onCommentSubmit(
-        `@${
-          comments.find((c) => c.id === commentId)?.author.name
-        }: ${replyContent.trim()}`
-      );
-      setReplyContent("");
-      setReplyingTo(null);
-    }
-  };
-
   const toggleCommentLike = (commentId: string) => {
     const newLikedComments = new Set(likedComments);
     if (likedComments.has(commentId)) {
@@ -63,8 +50,8 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
     setLikedComments(newLikedComments);
   };
 
-  const renderComment = (comment: Comment, isReply = false) => (
-    <div key={comment.id} className={`space-y-3 ${isReply ? "ml-8" : ""}`}>
+  const renderComment = (comment: Comment) => (
+    <div key={comment.id} className="space-y-3">
       <div className="flex gap-3">
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full overflow-hidden bg-surface flex-shrink-0">
@@ -119,57 +106,9 @@ const CommentsSection: React.FC<CommentsSectionProps> = ({
                 {comment.likes + (likedComments.has(comment.id) ? 1 : 0)}
               </span>
             </button>
-
-            {!isReply && (
-              <button
-                onClick={() => setReplyingTo(comment.id)}
-                className="flex items-center gap-1 text-text-secondary hover:text-primary transition-colors"
-              >
-                <MessageSquare size={14} />
-                <span>Reply</span>
-              </button>
-            )}
           </div>
-
-          {/* Reply Form */}
-          {replyingTo === comment.id && (
-            <div className="flex gap-2 mt-3">
-              <input
-                type="text"
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                placeholder={`Reply to ${comment.author.name}...`}
-                className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    handleSubmitReply(comment.id);
-                  }
-                }}
-              />
-              <button
-                onClick={() => handleSubmitReply(comment.id)}
-                disabled={!replyContent.trim()}
-                className="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Send size={16} />
-              </button>
-              <button
-                onClick={() => setReplyingTo(null)}
-                className="px-3 py-2 text-text-secondary hover:text-text-primary transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Replies */}
-      {comment.replies && comment.replies.length > 0 && (
-        <div className="space-y-4">
-          {comment.replies.map((reply) => renderComment(reply, true))}
-        </div>
-      )}
     </div>
   );
 
