@@ -15,6 +15,7 @@ const mockPosts = [
     tags: ["blogging", "cms", "web"],
     likes: 24,
     comments: 8,
+    views: 1200, // Added views
   },
   {
     id: 2,
@@ -27,6 +28,7 @@ const mockPosts = [
     tags: ["photography", "nature", "mountains"],
     likes: 45,
     comments: 12,
+    views: 2500, // Added views
     imageUrl:
       "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D",
   },
@@ -40,6 +42,7 @@ const mockPosts = [
     tags: ["quotes", "inspiration", "motivation"],
     likes: 67,
     comments: 15,
+    views: 3100, // Added views
   },
   {
     id: 4,
@@ -52,6 +55,7 @@ const mockPosts = [
     tags: ["webdev", "tutorial", "learning"],
     likes: 32,
     comments: 6,
+    views: 1800, // Added views
     linkUrl: "https://example.com/tutorial",
   },
   {
@@ -65,6 +69,7 @@ const mockPosts = [
     tags: ["music", "video", "creative"],
     likes: 89,
     comments: 23,
+    views: 5400, // Added views
     videoUrl: "https://www.youtube.com/watch?v=FtBzf8VgSUU",
   },
   {
@@ -78,6 +83,7 @@ const mockPosts = [
     tags: ["podcast", "ai", "technology"],
     likes: 56,
     comments: 18,
+    views: 2200, // Added views
     audioUrl: "https://example.com/audio",
   },
   {
@@ -91,6 +97,7 @@ const mockPosts = [
     tags: ["research", "climate", "science"],
     likes: 78,
     comments: 34,
+    views: 4100, // Added views
     fileUrl: "https://example.com/research.pdf",
   },
 ];

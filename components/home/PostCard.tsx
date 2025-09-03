@@ -15,6 +15,7 @@ import {
   Share2,
   Edit,
   Trash2,
+  Eye, // 1. Imported the Eye icon
 } from "lucide-react";
 
 interface PostCardProps {
@@ -28,6 +29,7 @@ interface PostCardProps {
     tags: string[];
     likes: number;
     comments: number;
+    views: number; // 2. Added views to the interface
     imageUrl?: string;
     linkUrl?: string;
     fileUrl?: string;
@@ -216,6 +218,11 @@ const PostCard = ({ post }: PostCardProps) => {
       {/* Post Actions */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
         <div className="flex items-center gap-6">
+          {/* 3. Added the views count */}
+          <div className="flex items-center gap-2 text-text-secondary">
+            <Eye size={18} />
+            <span>{post.views}</span>
+          </div>
           <button className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors">
             <Heart size={18} />
             <span>{post.likes}</span>

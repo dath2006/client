@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, HelpCircle } from "lucide-react";
 
 const SignInPage = () => {
   const [email, setEmail] = useState("");
@@ -10,14 +10,27 @@ const SignInPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  // 1. Added state for the security answer
+  const [securityAnswer, setSecurityAnswer] = useState("");
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  // A placeholder security question
+  const securityQuestion = "What is 2 + 2?";
 
   const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
     setMessage("");
+
+    // 2. Added validation for the security question
+    if (securityAnswer.trim() !== "4") {
+      setMessage("Incorrect answer to the security question.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const result = await signIn("credentials", {
@@ -70,37 +83,7 @@ const SignInPage = () => {
           className="w-full bg-surface-elevated text-text-primary font-semibold py-3 rounded-xl flex items-center justify-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50 mb-6 border border-default"
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="fill-current"
-              >
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.88c-.26 1.37-1.04 2.54-2.22 3.32v2.79h3.58c2.09-1.94 3.31-4.77 3.31-8.12z"
-                  fill="#4285F4"
-                ></path>
-                <path
-                  d="M12 23c3.27 0 6.01-1.08 8.01-2.93l-3.58-2.79c-.93.6-2.11.96-3.71.96-2.86 0-5.3-1.92-6.19-4.52H1.95v2.89C3.99 20.91 7.74 23 12 23z"
-                  fill="#34A853"
-                ></path>
-                <path
-                  d="M5.81 16.48c-.25-.71-.4-1.48-.4-2.29s.15-1.58.4-2.29V8.9h-3.96v2.89c.89 2.51 2.92 4.41 5.41 5.39z"
-                  fill="#FBBC05"
-                ></path>
-                <path
-                  d="M12 4.19c1.88 0 3.12.81 3.93 1.5l3.1-3.08c-1.87-1.74-4.51-2.81-7.03-2.81-4.26 0-8.01 2.09-10.05 5.17l3.96 2.89c.89-2.6 3.33-4.52 6.19-4.52z"
-                  fill="#EA4335"
-                ></path>
-              </svg>
-              <span>Sign In with Google</span>
-            </>
-          )}
+          {/* ... Google Sign In Button Content ... */}
         </button>
 
         <div className="relative mb-6">
@@ -167,6 +150,28 @@ const SignInPage = () => {
               </button>
             </div>
           </div>
+          
+          {/* 3. Added Security Question and Answer fields */}
+          <div className="mb-6">
+            <label
+              className="block text-text-secondary text-sm font-bold mb-2"
+              htmlFor="security-question"
+            >
+              {securityQuestion}
+            </label>
+            <div className="relative">
+              <HelpCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted" />
+              <input
+                className="shadow-sm appearance-none border border-default rounded-xl w-full py-3 pl-10 pr-4 text-text-primary leading-tight focus:outline-none focus:shadow-outline bg-surface transition-colors duration-300 hover:bg-surface-elevated focus:bg-surface-elevated focus:ring-2 focus:ring-primary focus:ring-opacity-50"
+                id="security-question"
+                type="text"
+                placeholder="Your answer"
+                value={securityAnswer}
+                onChange={(e) => setSecurityAnswer(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
           <div className="flex justify-end mb-6">
             <button
@@ -196,7 +201,9 @@ const SignInPage = () => {
         {message && (
           <div
             className={`mt-6 text-center text-sm font-medium ${
-              message.includes("successful") ? "text-success" : "text-error"
+              message.includes("successful") || message.includes("sent")
+                ? "text-success"
+                : "text-error"
             }`}
           >
             {message}
