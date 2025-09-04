@@ -77,4 +77,5 @@ export interface Post {
   viewCount: number;
   content: PostContent;
   comments: Comment[];
+  imageUrl?: string;
 }

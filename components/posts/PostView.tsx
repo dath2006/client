@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import PostHeader from "./PostHeader";
-import PostContent from "./PostContent"; // Assuming this handles image display
+import PostContent from "./PostContent";
 import PostInteractions from "./PostInteractions";
 import PostTags from "./PostTags";
-import CommentsSection from "./CommentsSection"; // This will be updated
+import CommentsSection from "./CommentsSection";
 import ShareModal from "./ShareModal";
 import { Post, Comment } from "@/types/post";
 import { feedAPI, ApiError } from "@/lib/api";
 
-// --- Animation Variants (with explicit 'Variants' type) ---
+// --- Animation Variants ---
 
 const pageVariants: Variants = {
   hidden: { opacity: 0 },
@@ -65,7 +65,6 @@ const modalContentVariants: Variants = {
   exit: { opacity: 0, scale: 0.9 },
 };
 
-// New variants for comments
 const commentVariants: Variants = {
   hidden: { opacity: 0, y: 20, scale: 0.95 },
   visible: {
@@ -92,6 +91,9 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  // Ref for the comments section to enable scrolling
+  const commentsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -122,6 +124,14 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Function to handle smooth scrolling to the comments
+  const handleScrollToComments = () => {
+    commentsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   const handleLike = () => {
     if (!currentPost) return;
     const newLikedState = !userInteractions.liked;
@@ -145,7 +155,7 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   const handleCommentSubmit = (content: string) => {
     if (!currentPost) return;
     const newComment: Comment = {
-      id: `c${Date.now()}`, // Ensure unique ID for AnimatePresence to track
+      id: `c${Date.now()}`,
       author: {
         name: "Current User",
         avatar: "/api/placeholder/40/40",
@@ -306,10 +316,10 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
               onLike={handleLike}
               onShare={handleShare}
               onSave={handleSave}
+              onCommentClick={handleScrollToComments}
             />
           </motion.div>
-          <motion.div variants={staggerItem}>
-            {/* Pass commentVariants down to CommentsSection */}
+          <motion.div variants={staggerItem} ref={commentsSectionRef}>
             <CommentsSection
               comments={currentPost.comments}
               onCommentSubmit={handleCommentSubmit}

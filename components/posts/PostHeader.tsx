@@ -1,85 +1,65 @@
-"use client";
+// src/components/PostHeader.tsx
 
 import React from "react";
-import { Calendar, User, Eye } from "lucide-react";
 import { Post } from "@/types/post";
+import { motion } from "framer-motion";
+import { MoreHorizontal } from "lucide-react";
 
 interface PostHeaderProps {
   post: Post;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: { opacity: 1, y: 0 },
+};
+
 const PostHeader: React.FC<PostHeaderProps> = ({ post }) => {
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(date);
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "K";
-    }
-    return num.toString();
-  };
-
   return (
-    <header className="space-y-4">
-      <h1 className="text-3xl md:text-4xl font-bold text-text-primary leading-tight">
-        {post.title}
-      </h1>
-
-      <div className="flex flex-wrap items-center gap-6 text-sm text-text-secondary">
-        {/* Author */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-surface">
-            {post.author.avatar ? (
-              <img
-                src={post.author.avatar}
-                alt={post.author.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-semibold">
-                {post.author.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <div>
-            <p className="font-medium text-text-primary">{post.author.name}</p>
-            <div className="flex items-center gap-1">
-              <User size={14} />
-              <span>Author</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Publication Date */}
-        <div className="flex items-center gap-2">
-          <Calendar size={16} />
-          <span>{formatDate(post.createdAt)}</span>
-        </div>
-
-        {/* View Count */}
-        <div className="flex items-center gap-2">
-          <Eye size={16} />
-          <span>{formatNumber(post.viewCount)} views</span>
-        </div>
-
-        {/* Post Type Badge */}
-        <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium capitalize">
-          {post.type}
-        </span>
-
-        {/* Category */}
-        <span className="bg-surface text-text-secondary px-2 py-1 rounded-full text-xs">
-          {post.category}
-        </span>
+    <motion.div
+      className="flex items-center justify-between"
+      variants={containerVariants}
+    >
+      <div className="flex items-center gap-4">
+        <motion.img
+          src={post.author.avatar}
+          alt={post.author.name}
+          className="w-12 h-12 rounded-full object-cover border-2 border-border"
+          variants={itemVariants}
+          whileHover={{ scale: 1.05 }}
+        />
+        <motion.div variants={itemVariants}>
+          {/* FIX: Ensure you are rendering post.author.name, not the whole author object */}
+          <p className="font-bold text-foreground">{post.author.name}</p>
+          <p className="text-sm text-text-secondary">
+            {new Date(post.createdAt).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </motion.div>
       </div>
-    </header>
+
+      <motion.button
+        className="p-2 rounded-full text-text-secondary hover:bg-border hover:text-foreground"
+        variants={itemVariants}
+        whileHover={{ scale: 1.1, rotate: 90 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <MoreHorizontal size={24} />
+      </motion.button>
+    </motion.div>
   );
 };
 
