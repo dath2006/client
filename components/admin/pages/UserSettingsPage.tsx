@@ -1,25 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const UserSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    allowRegistration: true,
-    emailCorrespondence: true,
-    activateByEmail: true,
-    defaultUserGroup: "Member",
-    guestGroup: "Guest",
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("User settings saved successfully");
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save user settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving user settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -29,6 +48,12 @@ const UserSettingsPage = () => {
           Configure user registration, email settings, and default groups
         </p>
       </div>
+
+      {error && (
+        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+          <p className="text-error text-sm">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Registration & Email Settings */}
@@ -48,7 +73,7 @@ const UserSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.allowRegistration}
+              checked={settings.allowRegistration || false}
               onChange={(checked) =>
                 handleInputChange("allowRegistration", checked)
               }
@@ -69,7 +94,7 @@ const UserSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.emailCorrespondence}
+              checked={settings.emailCorrespondence}
               onChange={(checked) =>
                 handleInputChange("emailCorrespondence", checked)
               }
@@ -90,7 +115,7 @@ const UserSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.activateByEmail}
+              checked={settings.activateByEmail}
               onChange={(checked) =>
                 handleInputChange("activateByEmail", checked)
               }
@@ -113,7 +138,7 @@ const UserSettingsPage = () => {
               Default User Group
             </label>
             <select
-              value={formData.defaultUserGroup}
+              value={settings.defaultUserGroup}
               onChange={(e) =>
                 handleInputChange("defaultUserGroup", e.target.value)
               }
@@ -136,7 +161,7 @@ const UserSettingsPage = () => {
               "Guest" Group
             </label>
             <select
-              value={formData.guestGroup}
+              value={settings.guestGroup}
               onChange={(e) => handleInputChange("guestGroup", e.target.value)}
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
             >
@@ -162,7 +187,7 @@ const UserSettingsPage = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div
                 className={`p-4 rounded-lg border-l-4 ${
-                  formData.allowRegistration
+                  settings.allowRegistration
                     ? "bg-success/5 border-success"
                     : "bg-muted/5 border-muted"
                 }`}
@@ -171,7 +196,7 @@ const UserSettingsPage = () => {
                   Registration Status
                 </h3>
                 <p className="text-xs text-secondary">
-                  {formData.allowRegistration
+                  {settings.allowRegistration
                     ? "New users can register accounts"
                     : "Registration is currently disabled"}
                 </p>
@@ -179,7 +204,7 @@ const UserSettingsPage = () => {
 
               <div
                 className={`p-4 rounded-lg border-l-4 ${
-                  formData.emailCorrespondence
+                  settings.emailCorrespondence
                     ? "bg-success/5 border-success"
                     : "bg-muted/5 border-muted"
                 }`}
@@ -188,7 +213,7 @@ const UserSettingsPage = () => {
                   Email System
                 </h3>
                 <p className="text-xs text-secondary">
-                  {formData.emailCorrespondence
+                  {settings.emailCorrespondence
                     ? "Email notifications are enabled"
                     : "Email notifications are disabled"}
                 </p>
@@ -198,7 +223,7 @@ const UserSettingsPage = () => {
             {/* Activation Method */}
             <div
               className={`p-4 rounded-lg border-l-4 ${
-                formData.activateByEmail
+                settings.activateByEmail
                   ? "bg-warning/5 border-warning"
                   : "bg-primary/5 border-primary"
               }`}
@@ -207,7 +232,7 @@ const UserSettingsPage = () => {
                 Account Activation
               </h3>
               <p className="text-xs text-secondary">
-                {formData.activateByEmail
+                {settings.activateByEmail
                   ? "Users must activate accounts via email verification"
                   : "Accounts are activated immediately upon registration"}
               </p>
@@ -219,9 +244,9 @@ const UserSettingsPage = () => {
                 Group Assignment
               </h3>
               <p className="text-xs text-secondary">
-                New users will be assigned to the "{formData.defaultUserGroup}"
+                New users will be assigned to the "{settings.defaultUserGroup}"
                 group. Non-registered visitors are treated as "
-                {formData.guestGroup}" users.
+                {settings.guestGroup}" users.
               </p>
             </div>
           </div>
@@ -231,9 +256,10 @@ const UserSettingsPage = () => {
         <div className="flex justify-end pt-6">
           <button
             onClick={handleSave}
-            className="btn-primary px-6 py-3 font-medium"
+            disabled={saving}
+            className="btn-primary px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save User Settings
+            {saving ? "Saving..." : "Save User Settings"}
           </button>
         </div>
       </div>

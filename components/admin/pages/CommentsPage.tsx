@@ -1,50 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import CommentCard from "@/components/admin/comments/CommentCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import CommentBatchActions from "@/components/admin/comments/CommentBatchActions";
-
-export interface Comment {
-  id: string;
-  author: {
-    name: string;
-    email: string;
-    website?: string;
-    avatar?: string;
-    isRegistered: boolean;
-  };
-  content: string;
-  status: "pending" | "approved" | "spam" | "rejected";
-  createdAt: Date;
-  ipAddress: string;
-  userAgent?: string;
-  post: {
-    id: string;
-    title: string;
-    slug: string;
-  };
-  parentId?: string; // For nested comments
-  isReply?: boolean;
-}
-
-interface PostWithComments {
-  post: {
-    id: string;
-    title: string;
-    slug: string;
-    createdAt: Date;
-    author: {
-      name: string;
-      avatar?: string;
-    };
-  };
-  comments: Comment[];
-  totalComments: number;
-  pendingCount: number;
-  approvedCount: number;
-  spamCount: number;
-}
+import { useComments } from "@/hooks/useComments";
+import type { PostWithComments, Comment as AdminComment } from "@/lib/api";
 
 const CommentsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,355 +13,193 @@ const CommentsPage = () => {
     "all" | "pending" | "approved" | "spam" | "rejected"
   >("all");
   const [selectedComments, setSelectedComments] = useState<string[]>([]);
-  const [postsWithComments, setPostsWithComments] = useState<
-    PostWithComments[]
-  >([]);
 
-  // Mock data for posts with comments
-  const mockPostsWithComments: PostWithComments[] = [
-    {
-      post: {
-        id: "1",
-        title: "Getting Started with Next.js 14",
-        slug: "getting-started-nextjs-14",
-        createdAt: new Date("2024-03-01"),
-        author: {
-          name: "Admin User",
-          avatar: "/avatars/admin.jpg",
-        },
-      },
-      comments: [
-        {
-          id: "c1",
-          author: {
-            name: "John Doe",
-            email: "john@example.com",
-            website: "https://johndoe.com",
-            isRegistered: false,
-          },
-          content:
-            "Great article! This really helped me understand the new features in Next.js 14.",
-          status: "pending",
-          createdAt: new Date("2024-03-02T10:30:00"),
-          ipAddress: "192.168.1.1",
-          userAgent:
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          post: {
-            id: "1",
-            title: "Getting Started with Next.js 14",
-            slug: "getting-started-nextjs-14",
-          },
-        },
-        {
-          id: "c2",
-          author: {
-            name: "Jane Smith",
-            email: "jane@example.com",
-            isRegistered: true,
-            avatar: "/avatars/jane.jpg",
-          },
-          content:
-            "Thanks for sharing this! The server components explanation was particularly useful.",
-          status: "approved",
-          createdAt: new Date("2024-03-02T14:15:00"),
-          ipAddress: "10.0.0.5",
-          post: {
-            id: "1",
-            title: "Getting Started with Next.js 14",
-            slug: "getting-started-nextjs-14",
-          },
-        },
-        {
-          id: "c3",
-          author: {
-            name: "Spammer Bot",
-            email: "spam@badsite.com",
-            website: "http://spam-site.com",
-            isRegistered: false,
-          },
-          content:
-            "Check out my amazing deals on cheap products! Visit my website now!!!",
-          status: "spam",
-          createdAt: new Date("2024-03-02T16:20:00"),
-          ipAddress: "45.123.456.789",
-          post: {
-            id: "1",
-            title: "Getting Started with Next.js 14",
-            slug: "getting-started-nextjs-14",
-          },
-        },
-      ],
-      totalComments: 3,
-      pendingCount: 1,
-      approvedCount: 1,
-      spamCount: 1,
-    },
-    {
-      post: {
-        id: "2",
-        title: "Building Modern UIs with React",
-        slug: "building-modern-uis-react",
-        createdAt: new Date("2024-02-28"),
-        author: {
-          name: "Admin User",
-          avatar: "/avatars/admin.jpg",
-        },
-      },
-      comments: [
-        {
-          id: "c4",
-          author: {
-            name: "Alice Developer",
-            email: "alice@dev.com",
-            isRegistered: true,
-            avatar: "/avatars/alice.jpg",
-          },
-          content:
-            "Love the component patterns you've shown here. Will definitely use these in my projects.",
-          status: "approved",
-          createdAt: new Date("2024-02-29T09:45:00"),
-          ipAddress: "172.16.0.10",
-          post: {
-            id: "2",
-            title: "Building Modern UIs with React",
-            slug: "building-modern-uis-react",
-          },
-        },
-        {
-          id: "c5",
-          author: {
-            name: "Bob Wilson",
-            email: "bob@example.com",
-            isRegistered: false,
-          },
-          content:
-            "Could you provide more examples of custom hooks? This would be very helpful.",
-          status: "pending",
-          createdAt: new Date("2024-03-01T11:20:00"),
-          ipAddress: "203.0.113.15",
-          post: {
-            id: "2",
-            title: "Building Modern UIs with React",
-            slug: "building-modern-uis-react",
-          },
-        },
-      ],
-      totalComments: 2,
-      pendingCount: 1,
-      approvedCount: 1,
-      spamCount: 0,
-    },
-  ];
+  // Use the real API hook
+  const {
+    postsWithComments,
+    stats,
+    pagination,
+    loading,
+    error,
+    fetchComments,
+    updateCommentStatus,
+    deleteComment,
+    batchAction,
+    clearError,
+    retry,
+  } = useComments({
+    autoFetch: false, // We'll fetch manually with initial params
+  });
 
-  // Initialize with mock data
-  React.useEffect(() => {
-    setPostsWithComments(mockPostsWithComments);
-  }, []);
+  // Fetch data on mount and when filters change
+  useEffect(() => {
+    const params = {
+      page: 1,
+      limit: 20,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      search: searchQuery || undefined,
+    };
+    fetchComments(params);
+  }, [statusFilter, searchQuery, fetchComments]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
 
-  const handleNew = () => {
-    // Comments are typically not created directly, but this could open a modal
-    // to manually add a comment or navigate to a specific post
-    console.log("Navigate to posts to add comments");
-  };
-
-  const handleCommentStatusChange = (
-    commentId: string,
-    newStatus: Comment["status"]
-  ) => {
-    setPostsWithComments((prev) =>
-      prev.map((postData) => ({
-        ...postData,
-        comments: postData.comments.map((comment) =>
-          comment.id === commentId ? { ...comment, status: newStatus } : comment
-        ),
-        // Recalculate counts
-        pendingCount: postData.comments.filter((c) =>
-          c.id === commentId ? newStatus === "pending" : c.status === "pending"
-        ).length,
-        approvedCount: postData.comments.filter((c) =>
-          c.id === commentId
-            ? newStatus === "approved"
-            : c.status === "approved"
-        ).length,
-        spamCount: postData.comments.filter((c) =>
-          c.id === commentId ? newStatus === "spam" : c.status === "spam"
-        ).length,
-      }))
+  const handleStatusFilter = (status: string) => {
+    setStatusFilter(
+      status as "all" | "pending" | "approved" | "spam" | "rejected"
     );
   };
 
-  const handleCommentDelete = (commentId: string) => {
+  const handleCommentSelect = (commentId: string, isSelected: boolean) => {
+    setSelectedComments((prev) =>
+      isSelected ? [...prev, commentId] : prev.filter((id) => id !== commentId)
+    );
+  };
+
+  const handleCommentStatusChange = async (
+    commentId: string,
+    newStatus: "pending" | "approved" | "spam" | "rejected"
+  ) => {
+    try {
+      await updateCommentStatus(commentId, newStatus);
+      // Remove from selection after status change
+      setSelectedComments((prev) => prev.filter((id) => id !== commentId));
+    } catch (error) {
+      console.error("Failed to update comment status:", error);
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
     if (
-      confirm(
+      window.confirm(
         "Are you sure you want to delete this comment? This action cannot be undone."
       )
     ) {
-      setPostsWithComments(
-        (prev) =>
-          prev
-            .map((postData) => ({
-              ...postData,
-              comments: postData.comments.filter(
-                (comment) => comment.id !== commentId
-              ),
-              totalComments: postData.comments.filter(
-                (comment) => comment.id !== commentId
-              ).length,
-            }))
-            .filter((postData) => postData.comments.length > 0) // Remove posts with no comments
-      );
-      setSelectedComments((prev) => prev.filter((id) => id !== commentId));
-    }
-  };
-
-  const handleCommentSelect = (commentId: string, selected: boolean) => {
-    if (selected) {
-      setSelectedComments((prev) => [...prev, commentId]);
-    } else {
-      setSelectedComments((prev) => prev.filter((id) => id !== commentId));
-    }
-  };
-
-  const handleBatchAction = (
-    action: "approve" | "reject" | "spam" | "delete",
-    commentIds: string[]
-  ) => {
-    if (action === "delete") {
-      if (
-        confirm(
-          `Are you sure you want to delete ${commentIds.length} comment(s)? This action cannot be undone.`
-        )
-      ) {
-        setPostsWithComments((prev) =>
-          prev
-            .map((postData) => ({
-              ...postData,
-              comments: postData.comments.filter(
-                (comment) => !commentIds.includes(comment.id)
-              ),
-              totalComments: postData.comments.filter(
-                (comment) => !commentIds.includes(comment.id)
-              ).length,
-            }))
-            .filter((postData) => postData.comments.length > 0)
-        );
-        setSelectedComments([]);
+      try {
+        await deleteComment(commentId);
+        // Remove from selection after deletion
+        setSelectedComments((prev) => prev.filter((id) => id !== commentId));
+      } catch (error) {
+        console.error("Failed to delete comment:", error);
       }
-    } else {
-      const statusMap = {
-        approve: "approved" as const,
-        reject: "rejected" as const,
-        spam: "spam" as const,
-      };
-
-      setPostsWithComments((prev) =>
-        prev.map((postData) => {
-          const updatedComments = postData.comments.map((comment) =>
-            commentIds.includes(comment.id)
-              ? { ...comment, status: statusMap[action] }
-              : comment
-          );
-
-          return {
-            ...postData,
-            comments: updatedComments,
-            // Recalculate counts
-            pendingCount: updatedComments.filter((c) => c.status === "pending")
-              .length,
-            approvedCount: updatedComments.filter(
-              (c) => c.status === "approved"
-            ).length,
-            spamCount: updatedComments.filter((c) => c.status === "spam")
-              .length,
-          };
-        })
-      );
-      setSelectedComments([]);
     }
   };
 
-  // Filter posts and comments based on search and status
-  const filteredPostsWithComments = postsWithComments
-    .map((postData) => ({
-      ...postData,
-      comments: postData.comments.filter((comment) => {
-        const matchesSearch =
-          searchQuery === "" ||
-          comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          comment.author.name
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          comment.author.email
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          postData.post.title.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleBatchAction = async (
+    action: "approve" | "reject" | "spam" | "delete"
+  ) => {
+    if (selectedComments.length === 0) return;
 
-        const matchesStatus =
-          statusFilter === "all" || comment.status === statusFilter;
+    const actionText = {
+      approve: "approve",
+      reject: "reject",
+      spam: "mark as spam",
+      delete: "delete",
+    }[action];
 
-        return matchesSearch && matchesStatus;
-      }),
-    }))
-    .filter((postData) => postData.comments.length > 0);
+    if (
+      window.confirm(
+        `Are you sure you want to ${actionText} ${selectedComments.length} comment(s)?`
+      )
+    ) {
+      try {
+        await batchAction(action, selectedComments);
+        setSelectedComments([]);
+      } catch (error) {
+        console.error("Failed to perform batch action:", error);
+      }
+    }
+  };
 
-  // Get all comments for batch actions
-  const allFilteredComments = filteredPostsWithComments.flatMap(
-    (postData) => postData.comments
-  );
+  const getStatusCounts = () => {
+    if (!stats) {
+      return {
+        all: 0,
+        pending: 0,
+        approved: 0,
+        spam: 0,
+        rejected: 0,
+      };
+    }
+
+    return {
+      all: stats.total,
+      pending: stats.pending,
+      approved: stats.approved,
+      spam: stats.spam,
+      rejected: stats.rejected,
+    };
+  };
+
+  const statusCounts = getStatusCounts();
+
+  if (error) {
+    return (
+      <div className="flex-1 p-6">
+        <div className=" border border-red-200 rounded-lg p-4">
+          <h3 className="text-lg font-medium text-red-800 mb-2">
+            Error Loading Comments
+          </h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={retry}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Retry
+            </button>
+            <button
+              onClick={clearError}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border pb-4">
-        <SearchHeader
-          title="Comment"
-          onSearch={handleSearch}
-          onNew={handleNew}
-        />
+    <div className="flex flex-col h-full bg-[#5d688a] text-[#f7a5a5]">
+      {/* Header */}
+      <SearchHeader title="Comments" onSearch={handleSearch} hideNew={true} />
 
-        {/* Status Filter */}
-        <div className="flex gap-2 mt-4 flex-wrap">
+      {/* Filter Tabs */}
+      <div className="border-b border-[#f7a5a5]/20 px-6">
+        <div className="flex space-x-8">
           {[
-            { key: "all", label: "All", count: allFilteredComments.length },
-            {
-              key: "pending",
-              label: "Pending",
-              count: allFilteredComments.filter((c) => c.status === "pending")
-                .length,
-            },
+            { key: "all", label: "All", count: statusCounts.all },
+            { key: "pending", label: "Pending", count: statusCounts.pending },
             {
               key: "approved",
               label: "Approved",
-              count: allFilteredComments.filter((c) => c.status === "approved")
-                .length,
+              count: statusCounts.approved,
             },
-            {
-              key: "spam",
-              label: "Spam",
-              count: allFilteredComments.filter((c) => c.status === "spam")
-                .length,
-            },
+            { key: "spam", label: "Spam", count: statusCounts.spam },
             {
               key: "rejected",
               label: "Rejected",
-              count: allFilteredComments.filter((c) => c.status === "rejected")
-                .length,
+              count: statusCounts.rejected,
             },
-          ].map((filter) => (
+          ].map((tab) => (
             <button
-              key={filter.key}
-              onClick={() => setStatusFilter(filter.key as any)}
-              className={`px-3 py-1 rounded-full text-sm transition-colors ${
-                statusFilter === filter.key
-                  ? "bg-[#f7a5a5] text-[#5d688a]"
-                  : "bg-white/5 text-[#f7a5a5]/70 hover:bg-white/10"
+              key={tab.key}
+              onClick={() => handleStatusFilter(tab.key)}
+              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                statusFilter === tab.key
+                  ? "border-[#f7a5a5] text-[#f7a5a5]"
+                  : "border-transparent text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:border-[#f7a5a5]/50"
               }`}
-              suppressHydrationWarning={true}
             >
-              {filter.label} ({filter.count})
+              {tab.label}
+              {tab.count > 0 && (
+                <span className="ml-2 bg-[#f7a5a5]/20 text-[#f7a5a5] py-1 px-2 rounded-full text-xs">
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -416,43 +215,101 @@ const CommentsPage = () => {
       )}
 
       <div className="flex-1 overflow-y-auto pt-4">
-        <div className="space-y-6">
-          {filteredPostsWithComments.map((postData) => (
-            <CommentCard
-              key={postData.post.id}
-              postData={postData}
-              onCommentStatusChange={handleCommentStatusChange}
-              onCommentDelete={handleCommentDelete}
-              onCommentSelect={handleCommentSelect}
-              selectedComments={selectedComments}
-            />
-          ))}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f7a5a5]"></div>
+            <span className="ml-2 text-[#f7a5a5]/70">Loading comments...</span>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {postsWithComments.map((postData: any) => (
+              <CommentCard
+                key={postData.post.id}
+                postData={{
+                  post: {
+                    id: Number(postData.post.id),
+                    title: postData.post.title,
+                    url: postData.post.url, // Backend uses 'url' field directly
+                  },
+                  comments: postData.comments.map((comment: any) => ({
+                    id: comment.id,
+                    body: comment.body,
+                    author: comment.author,
+                    email: comment.email,
+                    url: comment.url || "",
+                    ip: comment.ip,
+                    status: comment.status,
+                    createdAt: comment.created_at,
+                    updatedAt: comment.updated_at || comment.created_at,
+                  })),
+                  commentCount: postData.comments.length, // Calculate from comments array
+                }}
+                onCommentStatusChange={handleCommentStatusChange}
+                onCommentDelete={handleCommentDelete}
+                onCommentSelect={handleCommentSelect}
+                selectedComments={selectedComments}
+              />
+            ))}
 
-          {filteredPostsWithComments.length === 0 &&
-            postsWithComments.length > 0 && (
+            {postsWithComments.length === 0 && !loading && (
               <div className="bg-white/5 rounded-lg border border-[#f7a5a5]/20 p-8 text-center">
                 <h3 className="text-lg font-medium text-[#f7a5a5] mb-2">
                   No comments found
                 </h3>
                 <p className="text-[#f7a5a5]/70">
-                  Try adjusting your search query or filter settings.
+                  {searchQuery || statusFilter !== "all"
+                    ? "Try adjusting your search query or filter settings."
+                    : "Comments will appear here once visitors start engaging with your posts."}
                 </p>
               </div>
             )}
-
-          {postsWithComments.length === 0 && (
-            <div className="bg-white/5 rounded-lg border border-[#f7a5a5]/20 p-8 text-center">
-              <h3 className="text-lg font-medium text-[#f7a5a5] mb-2">
-                No comments yet
-              </h3>
-              <p className="text-[#f7a5a5]/70">
-                Comments will appear here once visitors start engaging with your
-                posts.
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <div className="p-6 border-t border-[#f7a5a5]/20">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-[#f7a5a5]/70">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total} comments
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  fetchComments({
+                    page: pagination.page - 1,
+                    status: statusFilter === "all" ? undefined : statusFilter,
+                    search: searchQuery || undefined,
+                  })
+                }
+                disabled={pagination.page <= 1}
+                className="px-3 py-1 bg-[#f7a5a5]/20 text-[#f7a5a5] rounded hover:bg-[#f7a5a5]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-[#f7a5a5]/70">
+                Page {pagination.page} of {pagination.pages}
+              </span>
+              <button
+                onClick={() =>
+                  fetchComments({
+                    page: pagination.page + 1,
+                    status: statusFilter === "all" ? undefined : statusFilter,
+                    search: searchQuery || undefined,
+                  })
+                }
+                disabled={pagination.page >= pagination.pages}
+                className="px-3 py-1 bg-[#f7a5a5]/20 text-[#f7a5a5] rounded hover:bg-[#f7a5a5]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

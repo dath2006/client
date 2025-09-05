@@ -1,156 +1,95 @@
-"use client";
+// src/components/CommentsSection.tsx
 
 import React, { useState } from "react";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Comment } from "@/types/post";
-import { Heart, MoreHorizontal, Send, MessageSquare } from "lucide-react";
 
+// Define the component's props interface
 interface CommentsSectionProps {
   comments: Comment[];
   onCommentSubmit: (content: string) => void;
+  commentVariants: Variants; // <-- ADD THIS LINE
 }
 
 const CommentsSection: React.FC<CommentsSectionProps> = ({
   comments,
   onCommentSubmit,
+  commentVariants, // <-- AND ADD IT HERE
 }) => {
-  const [newComment, setNewComment] = useState("");
-  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
+  const [newCommentContent, setNewCommentContent] = useState("");
 
-  const timeAgo = (date: Date) => {
-    const seconds = Math.floor(
-      (new Date().getTime() - new Date(date).getTime()) / 1000
-    );
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return Math.floor(seconds) + " seconds ago";
-  };
-
-  const handleSubmitComment = () => {
-    if (newComment.trim()) {
-      onCommentSubmit(newComment.trim());
-      setNewComment("");
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newCommentContent.trim()) {
+      onCommentSubmit(newCommentContent);
+      setNewCommentContent("");
     }
   };
-
-  const toggleCommentLike = (commentId: string) => {
-    const newLikedComments = new Set(likedComments);
-    if (likedComments.has(commentId)) {
-      newLikedComments.delete(commentId);
-    } else {
-      newLikedComments.add(commentId);
-    }
-    setLikedComments(newLikedComments);
-  };
-
-  const renderComment = (comment: Comment) => (
-    <div key={comment.id} className="space-y-3">
-      <div className="flex gap-3">
-        {/* Avatar */}
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-surface flex-shrink-0">
-          {comment.author.avatar ? (
-            <img
-              src={comment.author.avatar}
-              alt={comment.author.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-semibold">
-              {comment.author.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-
-        {/* Comment Content */}
-        <div className="flex-1 space-y-2">
-          {/* Author and Time */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-text-primary">
-                {comment.author.name}
-              </span>
-              <span className="text-xs text-text-secondary">
-                {timeAgo(comment.createdAt)}
-              </span>
-            </div>
-            <button className="p-1 text-text-secondary hover:text-text-primary rounded">
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-
-          {/* Comment Text */}
-          <p className="text-text-primary leading-relaxed">{comment.content}</p>
-
-          {/* Comment Actions */}
-          <div className="flex items-center gap-4 text-sm">
-            <button
-              onClick={() => toggleCommentLike(comment.id)}
-              className={`flex items-center gap-1 hover:text-red-500 transition-colors ${
-                likedComments.has(comment.id)
-                  ? "text-red-500"
-                  : "text-text-secondary"
-              }`}
-            >
-              <Heart
-                size={14}
-                className={likedComments.has(comment.id) ? "fill-current" : ""}
-              />
-              <span>
-                {comment.likes + (likedComments.has(comment.id) ? 1 : 0)}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
-    <section className="space-y-6">
-      <h2 className="text-2xl font-bold text-text-primary">
+    <div className="mt-8 pt-6 border-t border-border">
+      <h2 className="text-xl font-semibold mb-4 text-foreground">
         Comments ({comments.length})
       </h2>
 
-      {/* Comment Form */}
-      <div className="space-y-3">
+      {/* Comment Input Form */}
+      <form onSubmit={handleSubmit} className="mb-6">
         <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Write a comment..."
+          className="w-full p-3 bg-card border border-border rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           rows={3}
-          className="w-full px-4 py-3 bg-surface border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-        />
-        <div className="flex justify-end">
-          <button
-            onClick={handleSubmitComment}
-            disabled={!newComment.trim()}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send size={16} />
-            <span>Post Comment</span>
-          </button>
-        </div>
-      </div>
+          placeholder="Write a comment..."
+          value={newCommentContent}
+          onChange={(e) => setNewCommentContent(e.target.value)}
+        ></textarea>
+        <motion.button
+          type="submit"
+          className="mt-3 px-5 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors duration-200"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          Post Comment
+        </motion.button>
+      </form>
 
-      {/* Comments List */}
-      {comments.length === 0 ? (
-        <div className="text-center py-12 text-text-secondary">
-          <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
-          <p>No comments yet. Be the first to comment!</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {comments.map((comment) => renderComment(comment))}
-        </div>
-      )}
-    </section>
+      {/* List of Comments */}
+      <div className="space-y-4">
+        <AnimatePresence initial={false}>
+          {comments.map((comment) => (
+            <motion.div
+              key={comment.id}
+              className="bg-card p-4 rounded-lg shadow-sm border border-border"
+              variants={commentVariants} // Now this will work without error
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              layout
+            >
+              <div className="flex items-center mb-2">
+                <img
+                  src={comment.author.avatar || "/api/placeholder/40/40"}
+                  alt={comment.author.name}
+                  className="w-8 h-8 rounded-full mr-3 object-cover"
+                />
+                <div>
+                  <p className="font-medium text-foreground">
+                    {comment.author.name}
+                  </p>
+                  <p className="text-sm text-text-secondary">
+                    {new Date(comment.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-text-primary break-words">{comment.content}</p>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {comments.length === 0 && (
+          <p className="text-text-secondary text-center py-4">
+            No comments yet. Be the first!
+          </p>
+        )}
+      </div>
+    </div>
   );
 };
 

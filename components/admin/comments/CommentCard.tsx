@@ -17,44 +17,25 @@ import {
 } from "lucide-react";
 
 interface Comment {
-  id: string;
-  author: {
-    name: string;
-    email: string;
-    website?: string;
-    avatar?: string;
-    isRegistered: boolean;
-  };
-  content: string;
+  id: number | string; // Handle both API (number) and UI (string) formats
+  body: string; // API uses 'body' not 'content'
+  author: string; // API returns author as string, not object
+  email: string;
+  url: string; // API uses 'url' for website
+  ip: string; // API uses 'ip' not 'ipAddress'
   status: "pending" | "approved" | "spam" | "rejected";
-  createdAt: Date;
-  ipAddress: string;
-  userAgent?: string;
-  post: {
-    id: string;
-    title: string;
-    slug: string;
-  };
-  parentId?: string;
-  isReply?: boolean;
+  createdAt: string; // ISO date string
+  updatedAt: string;
 }
 
 interface PostWithComments {
   post: {
-    id: string;
+    id: number;
     title: string;
-    slug: string;
-    createdAt: Date;
-    author: {
-      name: string;
-      avatar?: string;
-    };
+    url: string; // API uses 'url' not 'slug'
   };
   comments: Comment[];
-  totalComments: number;
-  pendingCount: number;
-  approvedCount: number;
-  spamCount: number;
+  commentCount: number; // API uses 'commentCount' not 'totalComments'
 }
 
 interface CommentCardProps {
@@ -77,8 +58,22 @@ const CommentCard = ({
 }: CommentCardProps) => {
   const [expandedComments, setExpandedComments] = useState<string[]>([]);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  // Helper function to convert ID to string
+  const getCommentId = (comment: Comment): string => {
+    return comment.id.toString();
+  };
+
+  const formatDate = (date: string | Date | null | undefined) => {
+    if (!date) return "Invalid date";
+
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid date";
+    }
+
+    return dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -140,35 +135,23 @@ const CommentCard = ({
             {postData.post.title}
           </h3>
           <p className="text-sm text-[#f7a5a5]/70">
-            {postData.totalComments} comment
-            {postData.totalComments !== 1 ? "s" : ""} •
-            {postData.pendingCount > 0 && (
-              <span className="text-yellow-400 ml-1">
-                {postData.pendingCount} pending
-              </span>
-            )}
-            {postData.spamCount > 0 && (
-              <span className="text-red-400 ml-1">
-                {postData.spamCount} spam
-              </span>
-            )}
+            {postData.commentCount} comment
+            {postData.commentCount !== 1 ? "s" : ""}
           </p>
-        </div>
-        <div className="text-xs text-[#f7a5a5]/50">
-          Posted {formatDate(postData.post.createdAt)}
         </div>
       </div>
 
       {/* Comments List */}
       <div className="space-y-4">
         {postData.comments.map((comment) => {
-          const isExpanded = expandedComments.includes(comment.id);
-          const isSelected = selectedComments.includes(comment.id);
-          const shouldTruncate = comment.content.length > 150;
+          const commentId = getCommentId(comment);
+          const isExpanded = expandedComments.includes(commentId);
+          const isSelected = selectedComments.includes(commentId);
+          const shouldTruncate = comment.body?.length > 150;
 
           return (
             <div
-              key={comment.id}
+              key={commentId}
               className={`p-4 rounded-lg border transition-all ${
                 isSelected
                   ? "border-[#f7a5a5]/50 bg-[#f7a5a5]/5"
@@ -182,7 +165,7 @@ const CommentCard = ({
                     type="checkbox"
                     checked={isSelected}
                     onChange={(e) =>
-                      onCommentSelect(comment.id, e.target.checked)
+                      onCommentSelect(commentId, e.target.checked)
                     }
                     className="mt-1 w-4 h-4 text-[#f7a5a5] bg-transparent border border-[#f7a5a5]/30 rounded focus:ring-[#f7a5a5] focus:ring-1"
                     suppressHydrationWarning={true}
@@ -190,21 +173,17 @@ const CommentCard = ({
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      {comment.author.isRegistered ? (
-                        <User className="text-[#f7a5a5]" size={14} />
-                      ) : (
-                        <Globe className="text-[#f7a5a5]/70" size={14} />
-                      )}
+                      <Globe className="text-[#f7a5a5]/70" size={14} />
                       <span className="font-medium text-[#f7a5a5]">
-                        {comment.author.name}
+                        {comment.author}
                       </span>
                       <span className="text-[#f7a5a5]/50 text-sm">
                         <Mail size={12} className="inline mr-1" />
-                        {comment.author.email}
+                        {comment.email}
                       </span>
-                      {comment.author.website && (
+                      {comment.url && (
                         <a
-                          href={comment.author.website}
+                          href={comment.url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#f7a5a5]/70 hover:text-[#f7a5a5] text-sm transition-colors"
@@ -217,13 +196,7 @@ const CommentCard = ({
                     <div className="flex items-center gap-2 text-xs text-[#f7a5a5]/50">
                       <span>{formatDate(comment.createdAt)}</span>
                       <span>•</span>
-                      <span>IP: {comment.ipAddress}</span>
-                      {comment.userAgent && (
-                        <>
-                          <span>•</span>
-                          <Monitor size={10} className="inline" />
-                        </>
-                      )}
+                      <span>IP: {comment.ip}</span>
                     </div>
                   </div>
                 </div>
@@ -243,13 +216,13 @@ const CommentCard = ({
               <div className="mb-4 ml-7">
                 <div className="text-[#f7a5a5]/90 leading-relaxed">
                   {isExpanded || !shouldTruncate
-                    ? comment.content
-                    : truncateContent(comment.content)}
+                    ? comment.body
+                    : truncateContent(comment.body || "")}
                 </div>
 
                 {shouldTruncate && (
                   <button
-                    onClick={() => toggleCommentExpansion(comment.id)}
+                    onClick={() => toggleCommentExpansion(commentId)}
                     className="mt-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] text-sm flex items-center gap-1 transition-colors"
                     suppressHydrationWarning={true}
                   >
@@ -271,7 +244,7 @@ const CommentCard = ({
               {/* Action Buttons */}
               <div className="flex items-center gap-2 ml-7">
                 <button
-                  onClick={() => onCommentStatusChange(comment.id, "approved")}
+                  onClick={() => onCommentStatusChange(commentId, "approved")}
                   className={`px-3 py-1 rounded text-xs transition-colors ${
                     comment.status === "approved"
                       ? "bg-green-400/20 text-green-400"
@@ -285,7 +258,7 @@ const CommentCard = ({
                 </button>
 
                 <button
-                  onClick={() => onCommentStatusChange(comment.id, "rejected")}
+                  onClick={() => onCommentStatusChange(commentId, "rejected")}
                   className={`px-3 py-1 rounded text-xs transition-colors ${
                     comment.status === "rejected"
                       ? "bg-gray-400/20 text-gray-400"
@@ -299,7 +272,7 @@ const CommentCard = ({
                 </button>
 
                 <button
-                  onClick={() => onCommentStatusChange(comment.id, "spam")}
+                  onClick={() => onCommentStatusChange(commentId, "spam")}
                   className={`px-3 py-1 rounded text-xs transition-colors ${
                     comment.status === "spam"
                       ? "bg-red-400/20 text-red-400"
@@ -313,7 +286,7 @@ const CommentCard = ({
                 </button>
 
                 <button
-                  onClick={() => onCommentDelete(comment.id)}
+                  onClick={() => onCommentDelete(commentId)}
                   className="px-3 py-1 rounded text-xs bg-red-500/10 text-red-500/70 hover:text-red-500 hover:bg-red-500/20 transition-colors ml-2"
                   suppressHydrationWarning={true}
                 >

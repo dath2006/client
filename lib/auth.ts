@@ -67,6 +67,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               id: user.id,
               email: user.email,
               name: user.name,
+              role: user.role,
+              accessToken: user.access_token || user.accessToken,
             };
           }
         } catch (error) {
@@ -110,6 +112,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (response.ok) {
             const backendUser = await response.json();
             user.id = backendUser.id;
+            user.role = backendUser.role;
+            user.accessToken =
+              backendUser.access_token || backendUser.accessToken;
             return true;
           }
         } catch (error) {
@@ -122,12 +127,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = user.role;
+        token.accessToken = user.accessToken;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.accessToken = token.accessToken as string;
       }
       return session;
     },

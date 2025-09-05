@@ -1,31 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const CommentsSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    siteNotifications: true,
-    authorNotifications: true,
-    defaultCommentStatus: "denied",
-    htmlInComments: false,
-    allowedHtml: "a, blockquote, code, em, li, ol, pre, strong, ul",
-    commentsPerPage: 25,
-    reloadComments: true,
-    reloadInterval: 30,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Comment settings saved successfully");
+    },
+    onSaveError: (error: any) => {
+      console.error("Failed to save comment settings:", error);
+    },
   });
 
   const handleInputChange = (
     field: string,
     value: string | number | boolean
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving comment settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -57,7 +73,7 @@ const CommentsSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.siteNotifications}
+              checked={settings.siteNotifications || true}
               onChange={(checked) =>
                 handleInputChange("siteNotifications", checked)
               }
@@ -78,7 +94,7 @@ const CommentsSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.authorNotifications}
+              checked={settings.authorNotifications}
               onChange={(checked) =>
                 handleInputChange("authorNotifications", checked)
               }
@@ -101,7 +117,7 @@ const CommentsSettingsPage = () => {
               Default Comment Status
             </label>
             <select
-              value={formData.defaultCommentStatus}
+              value={settings.defaultCommentStatus}
               onChange={(e) =>
                 handleInputChange("defaultCommentStatus", e.target.value)
               }
@@ -136,7 +152,7 @@ const CommentsSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.htmlInComments}
+              checked={settings.htmlInComments}
               onChange={(checked) =>
                 handleInputChange("htmlInComments", checked)
               }
@@ -152,7 +168,7 @@ const CommentsSettingsPage = () => {
               Allowed HTML (comma separated)
             </label>
             <textarea
-              value={formData.allowedHtml}
+              value={settings.allowedHtml}
               onChange={(e) => handleInputChange("allowedHtml", e.target.value)}
               rows={3}
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 resize-none font-mono text-sm"
@@ -178,7 +194,7 @@ const CommentsSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.commentsPerPage}
+              value={settings.commentsPerPage}
               onChange={(e) =>
                 handleInputChange(
                   "commentsPerPage",
@@ -205,7 +221,7 @@ const CommentsSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.reloadComments}
+              checked={settings.reloadComments}
               onChange={(checked) =>
                 handleInputChange("reloadComments", checked)
               }
@@ -222,7 +238,7 @@ const CommentsSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.reloadInterval}
+              value={settings.reloadInterval}
               onChange={(e) =>
                 handleInputChange(
                   "reloadInterval",
@@ -249,7 +265,7 @@ const CommentsSettingsPage = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div
                 className={`p-4 rounded-lg border-l-4 ${
-                  formData.siteNotifications
+                  settings.siteNotifications
                     ? "bg-success/5 border-success"
                     : "bg-muted/5 border-muted"
                 }`}
@@ -258,7 +274,7 @@ const CommentsSettingsPage = () => {
                   Site Notifications
                 </h3>
                 <p className="text-xs text-secondary">
-                  {formData.siteNotifications
+                  {settings.siteNotifications
                     ? "Site contact receives email alerts"
                     : "Site notifications disabled"}
                 </p>
@@ -266,7 +282,7 @@ const CommentsSettingsPage = () => {
 
               <div
                 className={`p-4 rounded-lg border-l-4 ${
-                  formData.authorNotifications
+                  settings.authorNotifications
                     ? "bg-success/5 border-success"
                     : "bg-muted/5 border-muted"
                 }`}
@@ -275,7 +291,7 @@ const CommentsSettingsPage = () => {
                   Author Notifications
                 </h3>
                 <p className="text-xs text-secondary">
-                  {formData.authorNotifications
+                  {settings.authorNotifications
                     ? "Authors receive email alerts"
                     : "Author notifications disabled"}
                 </p>
@@ -287,19 +303,19 @@ const CommentsSettingsPage = () => {
                 Comment Processing
               </h3>
               <p className="text-xs text-secondary">
-                New comments are set to "{formData.defaultCommentStatus}" by
+                New comments are set to "{settings.defaultCommentStatus}" by
                 default.
-                {formData.htmlInComments
+                {settings.htmlInComments
                   ? " HTML tags are allowed."
                   : " HTML tags are stripped."}
-                {formData.reloadComments &&
-                  ` Comments reload every ${formData.reloadInterval} seconds.`}
+                {settings.reloadComments &&
+                  ` Comments reload every ${settings.reloadInterval} seconds.`}
               </p>
             </div>
 
             <div
               className={`p-4 rounded-lg border-l-4 ${
-                formData.htmlInComments
+                settings.htmlInComments
                   ? "bg-warning/5 border-warning"
                   : "bg-success/5 border-success"
               }`}
@@ -308,8 +324,8 @@ const CommentsSettingsPage = () => {
                 Content Security
               </h3>
               <p className="text-xs text-secondary">
-                {formData.htmlInComments
-                  ? `HTML is allowed: ${formData.allowedHtml}`
+                {settings.htmlInComments
+                  ? `HTML is allowed: ${settings.allowedHtml}`
                   : "HTML is not allowed in comments for security"}
               </p>
             </div>

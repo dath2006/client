@@ -1,178 +1,121 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+// src/components/ShareModal.tsx
+
+import React from "react";
 import { Post } from "@/types/post";
+import { motion } from "framer-motion";
 import {
   X,
-  Copy,
   Twitter,
   Facebook,
-  Linkedin,
-  MessageCircle,
+  Link as LinkIcon,
+  MessageSquare,
 } from "lucide-react";
 
+// Define the props for the component
 interface ShareModalProps {
   post: Post;
   onClose: () => void;
-  onShare: () => void;
+  onShare: () => void; // Used for the "Copy Link" notification
 }
 
+// A reusable component for each share option
+const ShareOption: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+}> = ({ icon, label, onClick, href }) => {
+  const commonProps = {
+    className:
+      "flex items-center w-full p-3 rounded-lg text-foreground hover:bg-border transition-colors duration-200",
+  };
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" {...commonProps}>
+        {icon}
+        <span className="ml-4 font-medium">{label}</span>
+      </a>
+    );
+  }
+
+  return (
+    <button onClick={onClick} {...commonProps}>
+      {icon}
+      <span className="ml-4 font-medium">{label}</span>
+    </button>
+  );
+};
+
 const ShareModal: React.FC<ShareModalProps> = ({ post, onClose, onShare }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
+  // Construct the URL for the post
+  // In a real app, ensure this URL structure matches your routing
+  const postUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/post/${post.id}`
+      : "";
+  const postTitle = `Check out this post: "${post.title}"`;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose]);
-
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `Check out this post: ${post.title}`;
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl);
-      onShare();
-      onClose();
-    } catch (err) {
-      console.error("Failed to copy link:", err);
+  // Handler for copying the link to the clipboard
+  const handleCopyLink = () => {
+    if (!navigator.clipboard) {
+      // Fallback for older browsers
+      alert("Clipboard API not available. Please copy the link manually.");
+      return;
     }
-  };
-
-  const shareLinks = {
-    twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-      currentUrl
-    )}&text=${encodeURIComponent(shareText)}`,
-    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      currentUrl
-    )}`,
-    linkedin: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(
-      currentUrl
-    )}&title=${encodeURIComponent(post.title)}`,
-    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(
-      shareText + " " + currentUrl
-    )}`,
-  };
-
-  const handleSocialShare = (url: string) => {
-    window.open(url, "_blank", "width=600,height=400");
+    navigator.clipboard.writeText(postUrl).then(() => {
+      onShare(); // Triggers the "Link copied" notification from PostView
+      setTimeout(onClose, 300); // Close modal shortly after
+    });
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div
-        ref={modalRef}
-        className="bg-card border border-border rounded-lg shadow-xl w-full max-w-md"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-xl font-semibold text-text-primary">
-            Share Post
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 text-text-secondary hover:text-text-primary rounded-lg transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm border border-border">
+      {/* Modal Header */}
+      <div className="flex justify-between items-center p-4 border-b border-border">
+        <h2 className="text-lg font-semibold text-foreground">Share Post</h2>
+        <motion.button
+          onClick={onClose}
+          className="p-1 rounded-full text-text-secondary hover:bg-border hover:text-foreground"
+          whileHover={{ scale: 1.1, rotate: 90 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <X size={20} />
+        </motion.button>
+      </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Post Preview */}
-          <div className="bg-surface p-4 rounded-lg">
-            <h3 className="font-medium text-text-primary line-clamp-2 mb-2">
-              {post.title}
-            </h3>
-            <p className="text-sm text-text-secondary">
-              By {post.author.name} • {post.category}
-            </p>
-          </div>
-
-          {/* Share Options */}
-          <div className="grid grid-cols-2 gap-3">
-            {/* Twitter */}
-            <button
-              onClick={() => handleSocialShare(shareLinks.twitter)}
-              className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-elevated rounded-lg transition-colors group"
-            >
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <Twitter size={16} className="text-white" />
-              </div>
-              <span className="text-text-primary group-hover:text-primary">
-                Twitter
-              </span>
-            </button>
-
-            {/* Facebook */}
-            <button
-              onClick={() => handleSocialShare(shareLinks.facebook)}
-              className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-elevated rounded-lg transition-colors group"
-            >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <Facebook size={16} className="text-white" />
-              </div>
-              <span className="text-text-primary group-hover:text-primary">
-                Facebook
-              </span>
-            </button>
-
-            {/* LinkedIn */}
-            <button
-              onClick={() => handleSocialShare(shareLinks.linkedin)}
-              className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-elevated rounded-lg transition-colors group"
-            >
-              <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center">
-                <Linkedin size={16} className="text-white" />
-              </div>
-              <span className="text-text-primary group-hover:text-primary">
-                LinkedIn
-              </span>
-            </button>
-
-            {/* WhatsApp */}
-            <button
-              onClick={() => handleSocialShare(shareLinks.whatsapp)}
-              className="flex items-center gap-3 p-3 bg-surface hover:bg-surface-elevated rounded-lg transition-colors group"
-            >
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <MessageCircle size={16} className="text-white" />
-              </div>
-              <span className="text-text-primary group-hover:text-primary">
-                WhatsApp
-              </span>
-            </button>
-          </div>
-
-          {/* Copy Link */}
-          <div className="pt-4 border-t border-border">
-            <button
-              onClick={handleCopyLink}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              <Copy size={16} />
-              <span>Copy Link</span>
-            </button>
-          </div>
+      {/* Modal Body with Share Options */}
+      <div className="p-4">
+        <div className="flex flex-col space-y-2">
+          <ShareOption
+            icon={<Twitter size={24} className="text-[#1DA1F2]" />}
+            label="Share on Twitter"
+            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(
+              postUrl
+            )}&text=${encodeURIComponent(postTitle)}`}
+          />
+          <ShareOption
+            icon={<Facebook size={24} className="text-[#1877F2]" />}
+            label="Share on Facebook"
+            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+              postUrl
+            )}`}
+          />
+          {/* Note: Lucide doesn't have a WhatsApp icon, so MessageSquare is a substitute */}
+          <ShareOption
+            icon={<MessageSquare size={24} className="text-[#25D366]" />}
+            label="Share on WhatsApp"
+            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+              postTitle + " " + postUrl
+            )}`}
+          />
+          <ShareOption
+            icon={<LinkIcon size={24} className="text-text-secondary" />}
+            label="Copy Link"
+            onClick={handleCopyLink}
+          />
         </div>
       </div>
     </div>

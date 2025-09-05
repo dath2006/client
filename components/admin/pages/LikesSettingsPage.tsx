@@ -1,23 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const LikesSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    likeImage: "pink",
-    likeWithText: false,
-    showOnIndexPages: false,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Likes settings saved successfully");
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save likes settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving likes settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   const imageOptions = [
     {
@@ -65,7 +86,7 @@ const LikesSettingsPage = () => {
   }) => (
     <label
       className={`p-4 bg-surface rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
-        formData.likeImage === option.value
+        settings.likeImage === option.value
           ? "border-primary bg-primary/5"
           : "border-default hover:border-primary/30"
       }`}
@@ -74,7 +95,7 @@ const LikesSettingsPage = () => {
         type="radio"
         name="likeImage"
         value={option.value}
-        checked={formData.likeImage === option.value}
+        checked={settings.likeImage === option.value}
         onChange={(e) => handleInputChange("likeImage", e.target.value)}
         className="sr-only"
       />
@@ -146,7 +167,7 @@ const LikesSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.likeWithText}
+              checked={settings.likeWithText}
               onChange={(checked) => handleInputChange("likeWithText", checked)}
               label="Like with Text toggle"
               variant="primary"
@@ -165,7 +186,7 @@ const LikesSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.showOnIndexPages}
+              checked={settings.showOnIndexPages}
               onChange={(checked) =>
                 handleInputChange("showOnIndexPages", checked)
               }
@@ -191,14 +212,14 @@ const LikesSettingsPage = () => {
                   <span
                     style={{
                       color: imageOptions.find(
-                        (opt) => opt.value === formData.likeImage
+                        (opt) => opt.value === settings.likeImage
                       )?.color,
                     }}
                     className="text-lg"
                   >
                     ♥
                   </span>
-                  {formData.likeWithText && (
+                  {settings.likeWithText && (
                     <span className="text-sm text-secondary">
                       Like this post
                     </span>
@@ -211,14 +232,14 @@ const LikesSettingsPage = () => {
                   <span
                     style={{
                       color: imageOptions.find(
-                        (opt) => opt.value === formData.likeImage
+                        (opt) => opt.value === settings.likeImage
                       )?.color,
                     }}
                     className="text-lg opacity-50"
                   >
                     ♥
                   </span>
-                  {formData.likeWithText && (
+                  {settings.likeWithText && (
                     <span className="text-sm text-secondary">
                       Unlike this post
                     </span>
@@ -228,7 +249,7 @@ const LikesSettingsPage = () => {
               </div>
             </div>
             <p className="text-xs text-secondary mt-4">
-              {formData.showOnIndexPages
+              {settings.showOnIndexPages
                 ? "These buttons will appear on both individual posts and index pages."
                 : "These buttons will appear only on individual post pages."}
             </p>
@@ -298,15 +319,15 @@ const LikesSettingsPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.showOnIndexPages ? "bg-success" : "bg-warning"
+                    settings.showOnIndexPages ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.showOnIndexPages ? "Enabled" : "Disabled"}
+                  {settings.showOnIndexPages ? "Enabled" : "Disabled"}
                 </span>
               </div>
               <p className="text-xs text-secondary">
-                {formData.showOnIndexPages
+                {settings.showOnIndexPages
                   ? "Like buttons appear on your blog homepage and category pages."
                   : "Like buttons are hidden on index pages to reduce clutter."}
               </p>
@@ -326,7 +347,7 @@ const LikesSettingsPage = () => {
                 <span
                   style={{
                     color: imageOptions.find(
-                      (opt) => opt.value === formData.likeImage
+                      (opt) => opt.value === settings.likeImage
                     )?.color,
                   }}
                   className="text-lg"
@@ -334,7 +355,7 @@ const LikesSettingsPage = () => {
                   ♥
                 </span>
                 <span className="text-sm text-secondary capitalize">
-                  {formData.likeImage}
+                  {settings.likeImage}
                 </span>
               </div>
             </div>
@@ -343,11 +364,11 @@ const LikesSettingsPage = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.likeWithText ? "bg-success" : "bg-warning"
+                    settings.likeWithText ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.likeWithText ? "Enabled" : "Disabled"}
+                  {settings.likeWithText ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>
@@ -356,11 +377,11 @@ const LikesSettingsPage = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.showOnIndexPages ? "bg-success" : "bg-warning"
+                    settings.showOnIndexPages ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.showOnIndexPages ? "Enabled" : "Disabled"}
+                  {settings.showOnIndexPages ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>

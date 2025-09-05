@@ -22,6 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import Toggle from "@/components/common/Toggle";
+import { Post, PostType } from "@/types/post";
 
 // Import post type components
 import TextPost from "./types/TextPost";
@@ -38,35 +39,8 @@ interface PostModalProps {
   onSave: (postData: PostFormData) => void;
   post?: Post | null;
   mode: "create" | "edit";
+  isLoading?: boolean;
 }
-
-interface Post {
-  id: string;
-  title: string;
-  type: PostType;
-  author: {
-    name: string;
-    avatar?: string;
-  };
-  createdAt: Date;
-  status: "published" | "draft" | "private" | "scheduled";
-  tags: string[];
-  category: string;
-  likes: number;
-  comments: number;
-  viewCount: number;
-  webmentions: number;
-  content?: any;
-}
-
-type PostType =
-  | "text"
-  | "audio"
-  | "video"
-  | "photo"
-  | "file"
-  | "quote"
-  | "link";
 
 export interface PostFormData {
   title: string;
@@ -180,6 +154,7 @@ const PostModal: React.FC<PostModalProps> = ({
   onSave,
   post,
   mode,
+  isLoading = false,
 }) => {
   const [formData, setFormData] = useState<PostFormData>({
     title: "",
@@ -209,15 +184,18 @@ const PostModal: React.FC<PostModalProps> = ({
         type: post.type,
         content: post.content || {},
         visibility: post.status === "published" ? "public" : post.status,
-        visibilityGroups: [],
-        isPinned: false,
-        slug: post.title.toLowerCase().replace(/\s+/g, "-"),
+        visibilityGroups: post.visibilityGroups || [],
+        isPinned: post.isPinned || false,
+        slug: post.slug || post.title.toLowerCase().replace(/\s+/g, "-"),
+        scheduledDate: post.scheduledDate
+          ? new Date(post.scheduledDate)
+          : undefined,
         tags: post.tags,
-        category: post.category,
-        commentStatus: "open",
-        isOriginalWork: true,
-        rightsHolder: "",
-        license: "All Rights Reserved",
+        category: post.category || "",
+        commentStatus: post.allowComments === false ? "closed" : "open",
+        isOriginalWork: post.isOriginalWork || true,
+        rightsHolder: post.rightsHolder || "",
+        license: post.license || "All Rights Reserved",
       });
     } else if (mode === "create") {
       setFormData({
@@ -228,6 +206,7 @@ const PostModal: React.FC<PostModalProps> = ({
         visibilityGroups: [],
         isPinned: false,
         slug: "",
+        scheduledDate: undefined,
         tags: [],
         category: "",
         commentStatus: "open",
@@ -509,7 +488,7 @@ const PostModal: React.FC<PostModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={formData.category}
+                    value={formData.category || ""}
                     onChange={(e) =>
                       handleInputChange("category", e.target.value)
                     }
@@ -766,9 +745,14 @@ const PostModal: React.FC<PostModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-[#f7a5a5] text-white rounded-lg hover:bg-[#f7a5a5]/90 transition-colors"
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-[#f7a5a5] text-white rounded-lg hover:bg-[#f7a5a5]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {mode === "create" ? "Create Post" : "Save Changes"}
+                {isLoading
+                  ? "Saving..."
+                  : mode === "create"
+                  ? "Create Post"
+                  : "Save Changes"}
               </button>
             </div>
           </div>

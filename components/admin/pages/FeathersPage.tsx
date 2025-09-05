@@ -1,10 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Toggle from "../../common/Toggle";
+import {
+  Feather as ApiFeather,
+  getFeathers,
+  updateFeatherStatus,
+} from "../../../lib/api-legacy/admin-feathers";
 
 interface Feather {
-  id: string;
+  id: number;
   name: string;
   description: string;
   status: "enabled" | "disabled";
@@ -12,65 +17,56 @@ interface Feather {
 }
 
 const FeathersPage = () => {
-  const [feathers, setFeathers] = useState<Feather[]>([
-    {
-      id: "text",
-      name: "Text",
-      description: "A basic text feather.",
-      status: "enabled",
-      canDisable: true,
-    },
-    {
-      id: "audio",
-      name: "Audio",
-      description: "A feather for audio.",
-      status: "disabled",
-    },
-    {
-      id: "uploader",
-      name: "Uploader",
-      description:
-        "Upload files and make them available for visitors to download.",
-      status: "disabled",
-    },
-    {
-      id: "quote",
-      name: "Quote",
-      description: "Post quotes and cite sources.",
-      status: "disabled",
-    },
-    {
-      id: "video",
-      name: "Video",
-      description: "A feather for video.",
-      status: "disabled",
-    },
-    {
-      id: "link",
-      name: "Link",
-      description: "Link to other sites and add an optional description.",
-      status: "disabled",
-    },
-    {
-      id: "photo",
-      name: "Photo",
-      description: "Upload and display an image with a caption.",
-      status: "disabled",
-    },
-  ]);
+  const [feathers, setFeathers] = useState<Feather[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleToggleFeather = (featherId: string) => {
-    setFeathers((prev) =>
-      prev.map((feather) => {
-        if (feather.id === featherId) {
-          return {
-            ...feather,
-            status: feather.status === "enabled" ? "disabled" : "enabled",
-          };
-        }
-        return feather;
-      })
-    );
+  useEffect(() => {
+    const fetchFeathers = async () => {
+      try {
+        setLoading(true);
+        const response = await getFeathers();
+        // Extract data from response
+        const feathersData = response.data || [];
+        // Convert API data to component format
+        // API now returns data in the format we need
+        const formattedFeathers: Feather[] = feathersData;
+        setFeathers(formattedFeathers);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch feathers:", err);
+        setError("Failed to load feathers. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeathers();
+  }, []);
+
+  const handleToggleFeather = async (featherId: number) => {
+    try {
+      const feather = feathers.find((f) => f.id === featherId);
+      if (!feather) return;
+
+      const newStatus = feather.status === "enabled" ? "disabled" : "enabled";
+      const updatedFeather = await updateFeatherStatus(featherId, newStatus);
+
+      setFeathers((prev) =>
+        prev.map((f) => {
+          if (f.id === featherId) {
+            return {
+              ...f,
+              status: updatedFeather.status,
+            };
+          }
+          return f;
+        })
+      );
+    } catch (err) {
+      console.error("Failed to update feather status:", err);
+      setError("Failed to update feather. Please try again later.");
+    }
   };
 
   const enabledFeathers = feathers.filter(
@@ -168,97 +164,112 @@ const FeathersPage = () => {
         </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Enabled Feathers */}
-        {enabledFeathers.length > 0 && (
+      {loading ? (
+        <div className="bg-card rounded-lg card-shadow p-6">
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="bg-card rounded-lg card-shadow p-6">
+          <div className="bg-error/10 border border-error/20 p-4 rounded-lg text-error">
+            {error}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Enabled Feathers */}
+          {enabledFeathers.length > 0 && (
+            <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+              <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
+                <span className="w-3 h-3 bg-success rounded-full"></span>
+                Enabled Feathers ({enabledFeathers.length})
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {enabledFeathers.map((feather) => (
+                  <FeatherCard key={feather.id} feather={feather} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Disabled Feathers */}
+          {disabledFeathers.length > 0 && (
+            <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+              <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
+                <span className="w-3 h-3 bg-warning rounded-full"></span>
+                Available Feathers ({disabledFeathers.length})
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                {disabledFeathers.map((feather) => (
+                  <FeatherCard key={feather.id} feather={feather} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Feather Information */}
           <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
-              <span className="w-3 h-3 bg-success rounded-full"></span>
-              Enabled Feathers ({enabledFeathers.length})
+            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
+              About Feathers
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {enabledFeathers.map((feather) => (
-                <FeatherCard key={feather.id} feather={feather} />
-              ))}
+            <div className="bg-surface rounded-lg border border-default p-4">
+              <p className="text-secondary text-sm leading-relaxed mb-3">
+                Feathers are content types that define how different kinds of
+                posts are created and displayed on your blog. Each feather
+                provides specific fields and formatting options tailored to its
+                content type.
+              </p>
+              <div className="space-y-2">
+                <h4 className="font-medium text-primary">
+                  Content Type Examples:
+                </h4>
+                <ul className="text-sm text-secondary space-y-1 ml-4">
+                  <li>
+                    • <strong>Text:</strong> Standard blog posts with rich text
+                    content
+                  </li>
+                  <li>
+                    • <strong>Photo:</strong> Image posts with captions and
+                    metadata
+                  </li>
+                  <li>
+                    • <strong>Video:</strong> Video embeds with descriptions
+                  </li>
+                  <li>
+                    • <strong>Quote:</strong> Formatted quotes with attribution
+                  </li>
+                  <li>
+                    • <strong>Link:</strong> Link sharing with optional
+                    commentary
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Disabled Feathers */}
-        {disabledFeathers.length > 0 && (
+          {/* Summary Stats */}
           <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
-              <span className="w-3 h-3 bg-warning rounded-full"></span>
-              Available Feathers ({disabledFeathers.length})
+            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
+              Feather Statistics
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {disabledFeathers.map((feather) => (
-                <FeatherCard key={feather.id} feather={feather} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Feather Information */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
-            About Feathers
-          </h2>
-          <div className="bg-surface rounded-lg border border-default p-4">
-            <p className="text-secondary text-sm leading-relaxed mb-3">
-              Feathers are content types that define how different kinds of
-              posts are created and displayed on your blog. Each feather
-              provides specific fields and formatting options tailored to its
-              content type.
-            </p>
-            <div className="space-y-2">
-              <h4 className="font-medium text-primary">
-                Content Type Examples:
-              </h4>
-              <ul className="text-sm text-secondary space-y-1 ml-4">
-                <li>
-                  • <strong>Text:</strong> Standard blog posts with rich text
-                  content
-                </li>
-                <li>
-                  • <strong>Photo:</strong> Image posts with captions and
-                  metadata
-                </li>
-                <li>
-                  • <strong>Video:</strong> Video embeds with descriptions
-                </li>
-                <li>
-                  • <strong>Quote:</strong> Formatted quotes with attribution
-                </li>
-                <li>
-                  • <strong>Link:</strong> Link sharing with optional commentary
-                </li>
-              </ul>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-success/10 rounded-lg border border-success/20">
+                <div className="text-2xl font-bold text-success">
+                  {enabledFeathers.length}
+                </div>
+                <div className="text-sm text-secondary">Enabled</div>
+              </div>
+              <div className="text-center p-4 bg-warning/10 rounded-lg border border-warning/20">
+                <div className="text-2xl font-bold text-warning">
+                  {disabledFeathers.length}
+                </div>
+                <div className="text-sm text-secondary">Available</div>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Summary Stats */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
-            Feather Statistics
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-success/10 rounded-lg border border-success/20">
-              <div className="text-2xl font-bold text-success">
-                {enabledFeathers.length}
-              </div>
-              <div className="text-sm text-secondary">Enabled</div>
-            </div>
-            <div className="text-center p-4 bg-warning/10 rounded-lg border border-warning/20">
-              <div className="text-2xl font-bold text-warning">
-                {disabledFeathers.length}
-              </div>
-              <div className="text-sm text-secondary">Available</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

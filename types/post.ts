@@ -77,4 +77,15 @@ export interface Post {
   viewCount: number;
   content: PostContent;
   comments: Comment[];
+  imageUrl?: string; // Optional thumbnail or featured image
+  webmentions?: number; // Optional for backward compatibility
+  slug?: string;
+  isPinned?: boolean;
+  allowComments?: boolean;
+  scheduledDate?: Date;
+  visibility?: string;
+  visibilityGroups?: string[];
+  rightsHolder?: string;
+  license?: string;
+  isOriginalWork?: boolean;
 }

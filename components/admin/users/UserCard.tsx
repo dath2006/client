@@ -11,7 +11,7 @@ interface UserCardProps {
     email: string;
     lastLogin: Date | null;
     createdAt: Date;
-    role: "admin" | "editor" | "contributor" | "member";
+    role: "admin" | "friend" | "banned" | "guest" | "member";
     stats: {
       comments: number;
       likedPosts: number;

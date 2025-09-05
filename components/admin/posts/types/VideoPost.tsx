@@ -109,53 +109,6 @@ const VideoPost: React.FC<VideoPostProps> = ({ content, onChange, errors }) => {
         </p>
       </div>
 
-      {/* Video Details */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-            Duration (Optional)
-          </label>
-          <input
-            type="text"
-            value={content.duration || ""}
-            onChange={(e) => onChange("duration", e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
-            placeholder="e.g., 5:30"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-            Resolution (Optional)
-          </label>
-          <select
-            value={content.resolution || ""}
-            onChange={(e) => onChange("resolution", e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white"
-          >
-            <option value="">Select resolution</option>
-            <option value="720p">720p HD</option>
-            <option value="1080p">1080p Full HD</option>
-            <option value="1440p">1440p QHD</option>
-            <option value="2160p">2160p 4K UHD</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-            Frame Rate (Optional)
-          </label>
-          <select
-            value={content.frameRate || ""}
-            onChange={(e) => onChange("frameRate", e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white"
-          >
-            <option value="">Select frame rate</option>
-            <option value="24">24 fps</option>
-            <option value="30">30 fps</option>
-            <option value="60">60 fps</option>
-          </select>
-        </div>
-      </div>
-
       {/* Description with Markdown */}
       <MarkdownEditor
         value={content.description || ""}
@@ -166,8 +119,8 @@ const VideoPost: React.FC<VideoPostProps> = ({ content, onChange, errors }) => {
         showToolbar={true}
       />
 
-      {/* Video Settings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Video Settings Just Letit be commented for now */}
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="flex items-center space-x-2">
             <input
@@ -212,7 +165,7 @@ const VideoPost: React.FC<VideoPostProps> = ({ content, onChange, errors }) => {
             <span className="text-sm text-[#f7a5a5]">Show controls</span>
           </label>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

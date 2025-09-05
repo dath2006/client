@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { Heart, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { Post } from "@/types/post";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, MessageCircle, Share2, Bookmark } from "lucide-react";
 
 interface PostInteractionsProps {
   post: Post;
@@ -11,7 +12,34 @@ interface PostInteractionsProps {
   onLike: () => void;
   onShare: () => void;
   onSave: () => void;
+  onCommentClick: () => void; // Prop to handle scrolling
 }
+
+const iconVariants = {
+  hidden: { scale: 0.5, opacity: 0 },
+  visible: { scale: 1, opacity: 1 },
+};
+
+const InteractionButton: React.FC<{
+  onClick: () => void;
+  children: React.ReactNode;
+  text: string;
+  isActive?: boolean;
+}> = ({ onClick, children, text, isActive = false }) => (
+  <motion.button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-200 ${
+      isActive
+        ? "bg-primary/10 text-primary"
+        : "text-text-secondary hover:bg-border hover:text-foreground"
+    }`}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+  >
+    {children}
+    <span className="hidden sm:inline">{text}</span>
+  </motion.button>
+);
 
 const PostInteractions: React.FC<PostInteractionsProps> = ({
   post,
@@ -20,69 +48,60 @@ const PostInteractions: React.FC<PostInteractionsProps> = ({
   onLike,
   onShare,
   onSave,
+  onCommentClick,
 }) => {
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "K";
-    }
-    return num.toString();
-  };
-
   return (
-    <div className="flex items-center justify-between py-6 border-t border-b border-border">
-      {/* Left side - Like and Comments */}
-      <div className="flex items-center gap-6">
-        {/* Like Button */}
-        <button
+    <div className="flex items-center justify-between py-4 border-t border-b border-border">
+      <div className="flex items-center gap-2">
+        <InteractionButton
           onClick={onLike}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            userLiked
-              ? "bg-red-50 text-red-500 border border-red-200"
-              : "bg-surface hover:bg-surface-elevated text-text-secondary hover:text-red-500"
-          }`}
+          text={`${post.likes} Likes`}
+          isActive={userLiked}
         >
-          <Heart size={20} className={userLiked ? "fill-current" : ""} />
-          <span className="font-medium">{formatNumber(post.likes)}</span>
-        </button>
+          <AnimatePresence initial={false} mode="wait">
+            <motion.span
+              key={userLiked ? "liked" : "unliked"}
+              variants={iconVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <Heart size={20} fill={userLiked ? "currentColor" : "none"} />
+            </motion.span>
+          </AnimatePresence>
+        </InteractionButton>
 
-        {/* Comments */}
-        <div className="flex items-center gap-2 px-4 py-2 text-text-secondary">
-          <MessageSquare size={20} />
-          <span className="font-medium">
-            {formatNumber(post.comments.length)}
-          </span>
-          <span className="hidden sm:inline">Comments</span>
-        </div>
-      </div>
-
-      {/* Right side - Share and Save */}
-      <div className="flex items-center gap-3">
-        {/* Share Button */}
-        <button
-          onClick={onShare}
-          className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-elevated text-text-secondary hover:text-primary rounded-lg transition-colors"
+        <InteractionButton
+          onClick={onCommentClick}
+          text={`${post.comments.length} Comments`}
         >
+          <MessageCircle size={20} />
+        </InteractionButton>
+
+        <InteractionButton onClick={onShare} text="Share">
           <Share2 size={20} />
-          <span className="hidden sm:inline font-medium">Share</span>
-        </button>
-
-        {/* Save Button */}
-        <button
-          onClick={onSave}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            userSaved
-              ? "bg-primary/10 text-primary border border-primary/20"
-              : "bg-surface hover:bg-surface-elevated text-text-secondary hover:text-primary"
-          }`}
-        >
-          <Bookmark size={20} className={userSaved ? "fill-current" : ""} />
-          <span className="hidden sm:inline font-medium">
-            {userSaved ? "Saved" : "Save"}
-          </span>
-        </button>
+        </InteractionButton>
       </div>
+
+      <InteractionButton
+        onClick={onSave}
+        text={userSaved ? "Saved" : "Save"}
+        isActive={userSaved}
+      >
+        <AnimatePresence initial={false} mode="wait">
+          <motion.span
+            key={userSaved ? "saved" : "unsaved"}
+            variants={iconVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <Bookmark size={20} fill={userSaved ? "currentColor" : "none"} />
+          </motion.span>
+        </AnimatePresence>
+      </InteractionButton>
     </div>
   );
 };

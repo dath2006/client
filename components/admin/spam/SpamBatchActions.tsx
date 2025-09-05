@@ -1,12 +1,12 @@
 "use client";
 
 import React from "react";
-import { Shield, Check, Trash2, CheckSquare } from "lucide-react";
+import { Shield, Check, Trash2, CheckSquare, X } from "lucide-react";
 
 interface SpamBatchActionsProps {
   selectedCount: number;
   onBatchAction: (
-    action: "confirm" | "false_positive" | "delete",
+    action: "approve" | "reject" | "delete",
     spamIds: string[]
   ) => void;
   selectedSpamIds: string[];
@@ -31,21 +31,21 @@ const SpamBatchActions = ({
           <span className="text-[#f7a5a5]/70 text-sm mr-4">Batch Actions:</span>
 
           <button
-            onClick={() => onBatchAction("confirm", selectedSpamIds)}
-            className="px-3 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors text-sm flex items-center gap-2"
+            onClick={() => onBatchAction("reject", selectedSpamIds)}
+            className="px-3 py-2 bg-gray-500/10 text-gray-400 rounded-lg hover:bg-gray-500/20 transition-colors text-sm flex items-center gap-2"
             suppressHydrationWarning={true}
           >
-            <Shield size={14} />
-            Confirm as Spam
+            <X size={14} />
+            Reject All
           </button>
 
           <button
-            onClick={() => onBatchAction("false_positive", selectedSpamIds)}
+            onClick={() => onBatchAction("approve", selectedSpamIds)}
             className="px-3 py-2 bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20 transition-colors text-sm flex items-center gap-2"
             suppressHydrationWarning={true}
           >
             <Check size={14} />
-            Mark as Not Spam
+            Approve All
           </button>
 
           <button

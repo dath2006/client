@@ -18,7 +18,6 @@ interface TagModalProps {
       title: string;
       createdAt: Date;
     }>;
-    color?: string;
   } | null;
   mode: "create" | "edit" | "view";
   allPosts: Post[];
@@ -33,13 +32,12 @@ interface Post {
   };
   createdAt: Date;
   tags?: string[]; // Array of tag IDs
-  status?: "published" | "draft" | "scheduled";
+  status?: "published" | "draft";
 }
 
 export interface TagFormData {
   name: string;
   selectedPostIds: string[];
-  color?: string;
 }
 
 const TagModal = ({
@@ -53,7 +51,6 @@ const TagModal = ({
   const [formData, setFormData] = useState<TagFormData>({
     name: "",
     selectedPostIds: [],
-    color: "",
   });
 
   const [errors, setErrors] = useState<{ name?: string; posts?: string }>({});
@@ -62,28 +59,58 @@ const TagModal = ({
 
   useEffect(() => {
     if (mode === "edit" && tag) {
+      // Include posts from tag.posts AND posts that have this tag in their tags array
+      const tagPostIds = tag.posts.map((p) => p.id);
+      const postsWithThisTag = allPosts
+        .filter(
+          (post) => post.tags?.includes(tag.id) || post.tags?.includes(tag.name)
+        )
+        .map((post) => post.id);
+
+      const allRelatedPostIds = [
+        ...new Set([...tagPostIds, ...postsWithThisTag]),
+      ];
+
+      console.log("Tag Modal Debug:", {
+        tagName: tag.name,
+        tagId: tag.id,
+        tagPostIds,
+        postsWithThisTag,
+        allRelatedPostIds,
+        allPostsCount: allPosts.length,
+      });
+
       setFormData({
         name: tag.name,
-        selectedPostIds: tag.posts.map((p) => p.id),
-        color: tag.color || "",
+        selectedPostIds: allRelatedPostIds,
       });
     } else if (mode === "view" && tag) {
+      // Include posts from tag.posts AND posts that have this tag in their tags array
+      const tagPostIds = tag.posts.map((p) => p.id);
+      const postsWithThisTag = allPosts
+        .filter(
+          (post) => post.tags?.includes(tag.id) || post.tags?.includes(tag.name)
+        )
+        .map((post) => post.id);
+
+      const allRelatedPostIds = [
+        ...new Set([...tagPostIds, ...postsWithThisTag]),
+      ];
+
       setFormData({
         name: tag.name,
-        selectedPostIds: tag.posts.map((p) => p.id),
-        color: tag.color || "",
+        selectedPostIds: allRelatedPostIds,
       });
     } else if (mode === "create") {
       setFormData({
         name: "",
         selectedPostIds: [],
-        color: "",
       });
     }
     setErrors({});
     setSearchQuery("");
     setShowAllPosts(false);
-  }, [mode, tag, isOpen]);
+  }, [mode, tag, isOpen, allPosts]);
 
   const validateForm = (): boolean => {
     const newErrors: { name?: string; posts?: string } = {};
@@ -173,9 +200,15 @@ const TagModal = ({
 
     // If in view/edit mode and not showing all posts, show only posts with this tag
     if ((mode === "view" || mode === "edit") && !showAllPosts && tag) {
-      posts = posts.filter((post) =>
-        tag.posts.some((tagPost) => tagPost.id === post.id)
-      );
+      posts = posts.filter((post) => {
+        // Check if post is in tag.posts array OR if post has this tag in its tags array
+        const isInTagPosts = tag.posts.some(
+          (tagPost) => tagPost.id === post.id
+        );
+        const hasTagInPostTags =
+          post.tags?.includes(tag.id) || post.tags?.includes(tag.name);
+        return isInTagPosts || hasTagInPostTags;
+      });
     }
 
     return posts;

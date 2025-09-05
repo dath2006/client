@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UserCard from "@/components/admin/users/UserCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import UserModal, { UserFormData } from "@/components/admin/users/UserModal";
+import { adminAPI, ApiError } from "@/lib/api";
 
+type UserRole = "admin" | "friend" | "banned" | "guest" | "member";
 interface User {
   id: string;
   name: string;
   email: string;
   lastLogin: Date | null;
   createdAt: Date;
-  role: "admin" | "editor" | "contributor" | "member";
+  role: UserRole;
   username?: string;
   fullName?: string;
   website?: string;
@@ -22,100 +24,52 @@ interface User {
   };
 }
 
+// Helper to map API user to local User type
+function mapApiUser(apiUser: any): User {
+  return {
+    id: apiUser.id,
+    name: apiUser.name || apiUser.fullName || apiUser.username, // Use fallback logic for name
+    email: apiUser.email,
+    lastLogin: apiUser.lastLogin ? new Date(apiUser.lastLogin) : null,
+    createdAt: apiUser.createdAt ? new Date(apiUser.createdAt) : new Date(),
+    role: apiUser.role as UserRole, // Just cast it directly - API should return valid role
+    username: apiUser.username,
+    fullName: apiUser.fullName,
+    website: apiUser.website,
+    stats: apiUser.stats || { comments: 0, likedPosts: 0, posts: 0 },
+  };
+}
+
 const UsersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for users
-  const mockUsers: User[] = [
-    {
-      id: "1",
-      name: "John Doe",
-      email: "john.doe@example.com",
-      lastLogin: new Date("2024-12-23T10:30:00"),
-      createdAt: new Date("2024-01-15"),
-      role: "admin",
-      username: "johndoe",
-      fullName: "John Alexander Doe",
-      website: "https://johndoe.dev",
-      stats: {
-        comments: 45,
-        likedPosts: 123,
-        posts: 12,
-      },
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      lastLogin: new Date("2024-12-22T15:45:00"),
-      createdAt: new Date("2024-03-20"),
-      role: "editor",
-      username: "janesmith",
-      fullName: "Jane Elizabeth Smith",
-      website: "https://janesmith.blog",
-      stats: {
-        comments: 89,
-        likedPosts: 267,
-        posts: 24,
-      },
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike.johnson@example.com",
-      lastLogin: new Date("2024-12-20T09:15:00"),
-      createdAt: new Date("2024-06-10"),
-      role: "contributor",
-      username: "mikejohnson",
-      fullName: "Michael Robert Johnson",
-      stats: {
-        comments: 23,
-        likedPosts: 89,
-        posts: 8,
-      },
-    },
-    {
-      id: "4",
-      name: "Emily Davis",
-      email: "emily.davis@example.com",
-      lastLogin: new Date("2024-12-21T14:20:00"),
-      createdAt: new Date("2024-08-05"),
-      role: "member",
-      username: "emilydavis",
-      fullName: "Emily Rose Davis",
-      stats: {
-        comments: 12,
-        likedPosts: 34,
-        posts: 3,
-      },
-    },
-    {
-      id: "5",
-      name: "Robert Wilson",
-      email: "robert.wilson@example.com",
-      lastLogin: null,
-      createdAt: new Date("2024-12-01"),
-      role: "member",
-      username: "robertwilson",
-      stats: {
-        comments: 0,
-        likedPosts: 2,
-        posts: 0,
-      },
-    },
-  ];
+  // Fetch users from API
+  const fetchUsers = async (search: string = "") => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      const response = await adminAPI.getUsers(params);
+      setUsers((response.data || []).map(mapApiUser));
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Initialize users with mock data
-  React.useEffect(() => {
-    setUsers(mockUsers);
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   const handleEdit = (id: string) => {
-    console.log("Editing user:", id);
     const user = users.find((u) => u.id === id);
     if (user) {
       setSelectedUser(user);
@@ -124,24 +78,30 @@ const UsersPage = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    console.log("Deleting user:", id);
-    // Add delete logic here
-    setUsers((prev) => prev.filter((user) => user.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await adminAPI.deleteUser(id);
+      setUsers((prev) => prev.filter((user) => user.id !== id));
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete user");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewData = (id: string) => {
-    console.log("Viewing user data:", id);
-    // Add view user data logic here
+    // Implement view user data if needed
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    // Add search logic here
+    await fetchUsers(query);
   };
 
   const handleNew = () => {
-    console.log("Creating new user");
     setSelectedUser(null);
     setModalMode("create");
     setIsModalOpen(true);
@@ -152,51 +112,41 @@ const UsersPage = () => {
     setSelectedUser(null);
   };
 
-  const handleUserSave = (userData: UserFormData) => {
-    if (modalMode === "create") {
-      // Create new user
-      const newUser: User = {
-        id: Date.now().toString(),
-        name: userData.fullName || userData.username,
-        email: userData.email,
-        lastLogin: null,
-        createdAt: new Date(),
-        role: userData.group.toLowerCase() as
-          | "admin"
-          | "editor"
-          | "contributor"
-          | "member",
+  const handleUserSave = async (userData: UserFormData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Transform UserFormData to API format
+      const apiUserData = {
         username: userData.username,
+        email: userData.email,
+        name: userData.fullName || userData.username, // Include name field
+        role: userData.group.toLowerCase(), // Convert "Admin" -> "admin", "Member" -> "member", etc.
         fullName: userData.fullName,
         website: userData.website,
-        stats: {
-          comments: 0,
-          likedPosts: 0,
-          posts: 0,
-        },
+        // Only include password for create operations or when password is provided
+        ...(modalMode === "create" || userData.password
+          ? { password: userData.password }
+          : {}),
       };
-      setUsers((prev) => [...prev, newUser]);
-    } else if (modalMode === "edit" && selectedUser) {
-      // Update existing user
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === selectedUser.id
-            ? {
-                ...user,
-                name: userData.fullName || userData.username,
-                email: userData.email,
-                role: userData.group.toLowerCase() as
-                  | "admin"
-                  | "editor"
-                  | "contributor"
-                  | "member",
-                username: userData.username,
-                fullName: userData.fullName,
-                website: userData.website,
-              }
-            : user
-        )
-      );
+
+      if (modalMode === "create") {
+        const created = await adminAPI.createUser(apiUserData);
+        setUsers((prev) => [...prev, mapApiUser(created)]);
+      } else if (modalMode === "edit" && selectedUser) {
+        const updated = await adminAPI.updateUser(selectedUser.id, apiUserData);
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === selectedUser.id ? mapApiUser(updated) : user
+          )
+        );
+      }
+      setIsModalOpen(false);
+      setSelectedUser(null);
+    } catch (err: any) {
+      setError(err?.message || "Failed to save user");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -206,6 +156,14 @@ const UsersPage = () => {
         <SearchHeader title="User" onSearch={handleSearch} onNew={handleNew} />
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
+        {error && (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 text-error text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="mb-4 text-center text-muted">Loading users...</div>
+        )}
         <div className="grid gap-4">
           {users.map((user) => (
             <UserCard
@@ -217,7 +175,7 @@ const UsersPage = () => {
             />
           ))}
 
-          {users.length === 0 && (
+          {!loading && users.length === 0 && (
             <div className="bg-white/5 rounded-lg border border-[#f7a5a5]/20 p-8 text-center">
               <h3 className="text-lg font-medium text-[#f7a5a5] mb-2">
                 No users found

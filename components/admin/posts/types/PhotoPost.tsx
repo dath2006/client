@@ -76,8 +76,8 @@ const PhotoPost: React.FC<PhotoPostProps> = ({ content, onChange, errors }) => {
         </div>
       )}
 
-      {/* Photo Layout */}
-      <div>
+      {/* Photo Layout Just Let it be commented for now */}
+      {/* <div>
         <label className="block text-sm font-medium text-[#f7a5a5] mb-2">
           Gallery Layout
         </label>
@@ -127,7 +127,7 @@ const PhotoPost: React.FC<PhotoPostProps> = ({ content, onChange, errors }) => {
             <span className="text-sm">Single</span>
           </label>
         </div>
-      </div>
+      </div> */}
 
       {/* Alternative Text */}
       <div>
@@ -141,34 +141,6 @@ const PhotoPost: React.FC<PhotoPostProps> = ({ content, onChange, errors }) => {
           className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
           placeholder="Describe the images for screen readers..."
         />
-      </div>
-
-      {/* Photo Details */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-            Location (Optional)
-          </label>
-          <input
-            type="text"
-            value={content.location || ""}
-            onChange={(e) => onChange("location", e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
-            placeholder="Where was this taken?"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-            Camera/Device (Optional)
-          </label>
-          <input
-            type="text"
-            value={content.camera || ""}
-            onChange={(e) => onChange("camera", e.target.value)}
-            className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
-            placeholder="Camera or device used"
-          />
-        </div>
       </div>
 
       {/* Source URL */}
@@ -194,33 +166,6 @@ const PhotoPost: React.FC<PhotoPostProps> = ({ content, onChange, errors }) => {
         label="Caption"
         showToolbar={true}
       />
-
-      {/* EXIF Data Toggle */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="checkbox"
-          checked={content.showExif || false}
-          onChange={(e) => onChange("showExif", e.target.checked)}
-          className="text-[#f7a5a5]"
-        />
-        <label className="text-sm text-[#f7a5a5]">
-          Show EXIF data (camera settings, if available)
-        </label>
-      </div>
-
-      {/* Copyright/Attribution */}
-      <div>
-        <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
-          Copyright/Attribution (Optional)
-        </label>
-        <input
-          type="text"
-          value={content.copyright || ""}
-          onChange={(e) => onChange("copyright", e.target.value)}
-          className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
-          placeholder="© 2024 Your Name or attribution info"
-        />
-      </div>
     </div>
   );
 };

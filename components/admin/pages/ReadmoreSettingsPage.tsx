@@ -1,22 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const ReadmoreSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    applyToFeeds: false,
-    defaultText: "",
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Read more settings saved successfully");
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save read more settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving readmore settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -28,6 +50,12 @@ const ReadmoreSettingsPage = () => {
           Configure how "read more" links behave in your blog posts
         </p>
       </div>
+
+      {error && (
+        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+          <p className="text-error text-sm">{error}</p>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Read More Configuration */}
@@ -48,7 +76,7 @@ const ReadmoreSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.applyToFeeds}
+              checked={settings.applyToFeeds}
               onChange={(checked) => handleInputChange("applyToFeeds", checked)}
               label="Apply to Feeds toggle"
               variant="primary"
@@ -63,7 +91,7 @@ const ReadmoreSettingsPage = () => {
             </label>
             <input
               type="text"
-              value={formData.defaultText}
+              value={settings.defaultText}
               onChange={(e) => handleInputChange("defaultText", e.target.value)}
               placeholder="Read more..."
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
@@ -195,18 +223,18 @@ const ReadmoreSettingsPage = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.applyToFeeds ? "bg-success" : "bg-warning"
+                    settings.applyToFeeds ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.applyToFeeds ? "Enabled" : "Disabled"}
+                  {settings.applyToFeeds ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>
             <div className="p-4 bg-surface rounded-lg border border-default">
               <h4 className="font-medium text-primary mb-2">Default Text</h4>
               <div className="text-sm text-secondary">
-                {formData.defaultText || (
+                {settings.defaultText || (
                   <span className="italic">Using module default</span>
                 )}
               </div>
@@ -218,9 +246,10 @@ const ReadmoreSettingsPage = () => {
         <div className="flex justify-end pt-6">
           <button
             onClick={handleSave}
-            className="btn-primary px-6 py-3 font-medium"
+            disabled={saving}
+            className="btn-primary px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Update Read More Settings
+            {saving ? "Saving..." : "Update Read More Settings"}
           </button>
         </div>
       </div>

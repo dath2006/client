@@ -1,15 +1,23 @@
 "use client";
 
 import React from "react";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 
 interface SearchHeaderProps {
   title: string;
   onSearch: (query: string) => void;
-  onNew: () => void;
+  onNew?: () => void;
+  hideNew?: boolean;
+  isLoading?: boolean;
 }
 
-const SearchHeader = ({ title, onSearch, onNew }: SearchHeaderProps) => {
+const SearchHeader = ({
+  title,
+  onSearch,
+  onNew,
+  hideNew = false,
+  isLoading = false,
+}: SearchHeaderProps) => {
   return (
     <div className="w-full mb-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -27,16 +35,24 @@ const SearchHeader = ({ title, onSearch, onNew }: SearchHeaderProps) => {
             className="absolute left-4 top-1/2 -translate-y-1/2 text-[#f7a5a5]/50"
             size={20}
           />
+          {isLoading && (
+            <Loader2
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#f7a5a5]/50 animate-spin"
+              size={16}
+            />
+          )}
         </div>
-        <button
-          onClick={onNew}
-          className="flex items-center gap-2 px-6 py-3 bg-[#f7a5a5] text-[#5d688a] rounded-full
-          hover:bg-[#ffdbb6] transition-colors duration-300 font-medium"
-          suppressHydrationWarning={true}
-        >
-          <Plus size={20} />
-          New {title}
-        </button>
+        {!hideNew && onNew && (
+          <button
+            onClick={onNew}
+            className="flex items-center gap-2 px-6 py-3 bg-[#f7a5a5] text-[#5d688a] rounded-full
+            hover:bg-[#ffdbb6] transition-colors duration-300 font-medium"
+            suppressHydrationWarning={true}
+          >
+            <Plus size={20} />
+            New {title}
+          </button>
+        )}
       </div>
     </div>
   );

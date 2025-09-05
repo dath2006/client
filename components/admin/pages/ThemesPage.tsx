@@ -1,9 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Theme as ApiTheme,
+  getThemes,
+  activateTheme,
+} from "../../../lib/api-legacy/admin-themes";
 
 interface Theme {
-  id: string;
+  id: number;
   name: string;
   description: string;
   isActive?: boolean;
@@ -11,46 +16,46 @@ interface Theme {
 }
 
 const ThemesPage = () => {
-  const [themes, setThemes] = useState<Theme[]>([
-    {
-      id: "umbra",
-      name: "Umbra",
-      description: "A dark tumbleblog theme for Chyrp Lite.",
-      isActive: false,
-    },
-    {
-      id: "virgula",
-      name: "Virgula",
-      description: "A high-contrast theme for Chyrp Lite.",
-      isActive: false,
-    },
-    {
-      id: "topaz",
-      name: "Topaz",
-      description: "A minimalist responsive theme for Chyrp Lite.",
-      isActive: false,
-    },
-    {
-      id: "sparrow",
-      name: "Sparrow",
-      description: "An unobtrusive tumbleblog theme for Chyrp Lite.",
-      isActive: false,
-    },
-    {
-      id: "blossom",
-      name: "Blossom",
-      description: "The default theme provided with Chyrp Lite.",
-      isActive: true,
-    },
-  ]);
+  const [themes, setThemes] = useState<Theme[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSelectTheme = (themeId: string) => {
-    setThemes((prev) =>
-      prev.map((theme) => ({
-        ...theme,
-        isActive: theme.id === themeId,
-      }))
-    );
+  useEffect(() => {
+    const fetchThemes = async () => {
+      try {
+        setLoading(true);
+        const response = await getThemes();
+        // Extract data from response
+        const themesData = response.data || [];
+        // API already returns data in the format we need
+        const formattedThemes: Theme[] = themesData;
+        setThemes(formattedThemes);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch themes:", err);
+        setError("Failed to load themes. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchThemes();
+  }, []);
+
+  const handleSelectTheme = async (themeId: number) => {
+    try {
+      await activateTheme(themeId);
+
+      setThemes((prev) =>
+        prev.map((theme) => ({
+          ...theme,
+          isActive: theme.id === themeId,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to activate theme:", err);
+      setError("Failed to activate theme. Please try again later.");
+    }
   };
 
   const handlePreview = (themeName: string) => {
@@ -158,93 +163,107 @@ const ThemesPage = () => {
         </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Active Theme */}
-        {activeTheme && (
-          <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
-              <span className="w-3 h-3 bg-success rounded-full"></span>
-              Active Theme
-            </h2>
-            <div className="max-w-sm">
-              <ThemeCard theme={activeTheme} />
-            </div>
-          </div>
-        )}
-
-        {/* Available Themes */}
-        {availableThemes.length > 0 && (
-          <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
-              <span className="w-3 h-3 bg-warning rounded-full"></span>
-              Available Themes ({availableThemes.length})
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {availableThemes.map((theme) => (
-                <ThemeCard key={theme.id} theme={theme} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Theme Information */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
-            About Themes
-          </h2>
-          <div className="bg-surface rounded-lg border border-default p-4">
-            <p className="text-secondary text-sm leading-relaxed mb-3">
-              Themes control the visual appearance and layout of your blog. Each
-              theme provides a unique design aesthetic and user experience
-              tailored for different use cases and preferences.
-            </p>
-            <div className="space-y-2">
-              <h4 className="font-medium text-primary">Theme Features:</h4>
-              <ul className="text-sm text-secondary space-y-1 ml-4">
-                <li>
-                  • <strong>Responsive Design:</strong> All themes adapt to
-                  different screen sizes
-                </li>
-                <li>
-                  • <strong>Customizable:</strong> Most themes support color and
-                  layout customization
-                </li>
-                <li>
-                  • <strong>Accessibility:</strong> Built with web accessibility
-                  standards in mind
-                </li>
-                <li>
-                  • <strong>Performance:</strong> Optimized for fast loading and
-                  smooth browsing
-                </li>
-                <li>
-                  • <strong>SEO Friendly:</strong> Clean HTML structure for
-                  better search engine visibility
-                </li>
-              </ul>
-            </div>
+      {loading ? (
+        <div className="bg-card rounded-lg card-shadow p-6">
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </div>
-
-        {/* Theme Statistics */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
-            Theme Statistics
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-success/10 rounded-lg border border-success/20">
-              <div className="text-2xl font-bold text-success">1</div>
-              <div className="text-sm text-secondary">Active Theme</div>
-            </div>
-            <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
-              <div className="text-2xl font-bold text-primary">
-                {themes.length}
+      ) : error ? (
+        <div className="bg-card rounded-lg card-shadow p-6">
+          <div className="bg-error/10 border border-error/20 p-4 rounded-lg text-error">
+            {error}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Active Theme */}
+          {activeTheme && (
+            <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+              <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
+                <span className="w-3 h-3 bg-success rounded-full"></span>
+                Active Theme
+              </h2>
+              <div className="max-w-sm">
+                <ThemeCard theme={activeTheme} />
               </div>
-              <div className="text-sm text-secondary">Total Themes</div>
+            </div>
+          )}
+
+          {/* Available Themes */}
+          {availableThemes.length > 0 && (
+            <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+              <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2 flex items-center gap-2">
+                <span className="w-3 h-3 bg-warning rounded-full"></span>
+                Available Themes ({availableThemes.length})
+              </h2>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {availableThemes.map((theme) => (
+                  <ThemeCard key={theme.id} theme={theme} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Theme Information */}
+          <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
+              About Themes
+            </h2>
+            <div className="bg-surface rounded-lg border border-default p-4">
+              <p className="text-secondary text-sm leading-relaxed mb-3">
+                Themes control the visual appearance and layout of your blog.
+                Each theme provides a unique design aesthetic and user
+                experience tailored for different use cases and preferences.
+              </p>
+              <div className="space-y-2">
+                <h4 className="font-medium text-primary">Theme Features:</h4>
+                <ul className="text-sm text-secondary space-y-1 ml-4">
+                  <li>
+                    • <strong>Responsive Design:</strong> All themes adapt to
+                    different screen sizes
+                  </li>
+                  <li>
+                    • <strong>Customizable:</strong> Most themes support color
+                    and layout customization
+                  </li>
+                  <li>
+                    • <strong>Accessibility:</strong> Built with web
+                    accessibility standards in mind
+                  </li>
+                  <li>
+                    • <strong>Performance:</strong> Optimized for fast loading
+                    and smooth browsing
+                  </li>
+                  <li>
+                    • <strong>SEO Friendly:</strong> Clean HTML structure for
+                    better search engine visibility
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Theme Statistics */}
+          <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+            <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
+              Theme Statistics
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-success/10 rounded-lg border border-success/20">
+                <div className="text-2xl font-bold text-success">1</div>
+                <div className="text-sm text-secondary">Active Theme</div>
+              </div>
+              <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="text-2xl font-bold text-primary">
+                  {themes.length}
+                </div>
+                <div className="text-sm text-secondary">Total Themes</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

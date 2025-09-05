@@ -2,16 +2,7 @@
 
 import React from "react";
 import { Edit, Trash2, Hash, Eye, EyeOff } from "lucide-react";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  isListed: boolean;
-  postCount: number;
-  createdAt: Date;
-  description?: string;
-}
+import type { Category } from "@/lib/api";
 
 interface CategoryCardProps {
   category: Category;
@@ -20,8 +11,15 @@ interface CategoryCardProps {
 }
 
 const CategoryCard = ({ category, onEdit, onDelete }: CategoryCardProps) => {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  const formatDate = (date: Date | string | undefined) => {
+    if (!date) return "N/A";
+
+    const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) return "Invalid Date";
+
+    return dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",

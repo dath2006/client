@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import UploadCard from "@/components/admin/uploads/UploadCard";
 import FilterSortControls from "@/components/admin/uploads/FilterSortControls";
 import SearchHeader from "@/components/admin/common/SearchHeader";
+import { adminAPI, ApiError } from "@/lib/api";
 
 interface Upload {
   id: string;
@@ -18,116 +19,141 @@ interface Upload {
   url?: string;
 }
 
+// Helper to map API upload to local Upload type
+function mapApiUpload(apiUpload: any): Upload {
+  return {
+    id: apiUpload.id,
+    fileName: apiUpload.fileName || apiUpload.filename,
+    uploadedAt: apiUpload.uploadedAt
+      ? new Date(apiUpload.uploadedAt)
+      : new Date(),
+    uploader: {
+      name: apiUpload.uploader?.name || apiUpload.uploaderName || "Unknown",
+    },
+    size: apiUpload.size || 0,
+    mediaType: apiUpload.mediaType || "file",
+    mimeType: apiUpload.mimeType || "application/octet-stream",
+    url: apiUpload.url,
+  };
+}
+
 const UploadsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("uploadedAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterType, setFilterType] = useState("all");
+  const [uploads, setUploads] = useState<Upload[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for uploads
-  const mockUploads: Upload[] = [
-    {
-      id: "1",
-      fileName: "hero-banner.jpg",
-      uploadedAt: new Date("2024-12-22T14:30:00"),
-      uploader: { name: "John Doe" },
-      size: 2458624, // ~2.4MB
-      mediaType: "image",
-      mimeType: "image/jpeg",
-    },
-    {
-      id: "2",
-      fileName: "product-demo-video.mp4",
-      uploadedAt: new Date("2024-12-21T10:15:00"),
-      uploader: { name: "Jane Smith" },
-      size: 15728640, // ~15MB
-      mediaType: "video",
-      mimeType: "video/mp4",
-    },
-    {
-      id: "3",
-      fileName: "background-music.mp3",
-      uploadedAt: new Date("2024-12-20T16:45:00"),
-      uploader: { name: "Mike Johnson" },
-      size: 5242880, // ~5MB
-      mediaType: "audio",
-      mimeType: "audio/mpeg",
-    },
-    {
-      id: "4",
-      fileName: "user-guide.pdf",
-      uploadedAt: new Date("2024-12-19T09:30:00"),
-      uploader: { name: "Emily Davis" },
-      size: 1048576, // ~1MB
-      mediaType: "file",
-      mimeType: "application/pdf",
-    },
-    {
-      id: "5",
-      fileName: "profile-avatar.png",
-      uploadedAt: new Date("2024-12-18T11:20:00"),
-      uploader: { name: "Robert Wilson" },
-      size: 524288, // ~512KB
-      mediaType: "image",
-      mimeType: "image/png",
-    },
-    {
-      id: "6",
-      fileName: "presentation.pptx",
-      uploadedAt: new Date("2024-12-17T13:45:00"),
-      uploader: { name: "Sarah Johnson" },
-      size: 8388608, // ~8MB
-      mediaType: "file",
-      mimeType:
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    },
-    {
-      id: "7",
-      fileName: "podcast-episode-01.wav",
-      uploadedAt: new Date("2024-12-16T08:15:00"),
-      uploader: { name: "David Brown" },
-      size: 31457280, // ~30MB
-      mediaType: "audio",
-      mimeType: "audio/wav",
-    },
-    {
-      id: "8",
-      fileName: "tutorial-screencast.webm",
-      uploadedAt: new Date("2024-12-15T15:30:00"),
-      uploader: { name: "Lisa Wilson" },
-      size: 12582912, // ~12MB
-      mediaType: "video",
-      mimeType: "video/webm",
-    },
-  ];
+  // Fetch uploads from API
+  const fetchUploads = async (search: string = "", type: string = "all") => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      if (type !== "all") params.mediaType = type;
+      params.sortBy = sortBy;
+      params.sortOrder = sortOrder;
 
-  const handleEdit = (id: string) => {
-    console.log("Editing upload:", id);
-    // Add edit logic here
+      const response = await adminAPI.getUploads(params);
+      setUploads((response.data || []).map(mapApiUpload));
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch uploads");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    console.log("Deleting upload:", id);
-    // Add delete logic here
+  useEffect(() => {
+    fetchUploads(searchQuery, filterType);
+  }, [sortBy, sortOrder]);
+
+  const handleEdit = async (id: string) => {
+    // For file uploads, editing usually means updating metadata like filename or description
+    // You might want to open a modal for this
+    console.log("Editing upload:", id);
+  };
+
+  const handleDelete = async (id: string) => {
+    const upload = uploads.find((u) => u.id === id);
+    if (!upload) return;
+
+    if (
+      !window.confirm(`Are you sure you want to delete "${upload.fileName}"?`)
+    )
+      return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      await adminAPI.deleteUpload(id);
+      setUploads((prev) => prev.filter((upload) => upload.id !== id));
+    } catch (err: any) {
+      setError(err?.message || "Failed to delete upload");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleView = (id: string) => {
-    console.log("Viewing upload:", id);
-    // Add view logic here
+    const upload = uploads.find((u) => u.id === id);
+    if (upload?.url) {
+      window.open(upload.url, "_blank");
+    }
   };
 
-  const handleDownload = (id: string) => {
-    console.log("Downloading upload:", id);
-    // Add download logic here
+  const handleDownload = async (id: string) => {
+    try {
+      const blob = await adminAPI.downloadUpload(id);
+      const upload = uploads.find((u) => u.id === id);
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = upload?.fileName || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || "Failed to download file");
+    }
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
+    await fetchUploads(query, filterType);
   };
 
   const handleNew = () => {
-    console.log("Uploading new file");
-    // Add file upload logic here
+    // Create file input for upload
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files?.length) return;
+
+      setLoading(true);
+      setError(null);
+      try {
+        for (const file of Array.from(files)) {
+          const formData = new FormData();
+          formData.append("file", file);
+
+          const uploaded = await adminAPI.uploadFile(formData);
+          setUploads((prev) => [...prev, mapApiUpload(uploaded)]);
+        }
+      } catch (err: any) {
+        setError(err?.message || "Failed to upload file(s)");
+      } finally {
+        setLoading(false);
+      }
+    };
+    input.click();
   };
 
   const handleSortChange = (field: string) => {
@@ -139,30 +165,33 @@ const UploadsPage = () => {
     }
   };
 
-  const handleFilterChange = (type: string) => {
+  const handleFilterChange = async (type: string) => {
     setFilterType(type);
+    await fetchUploads(searchQuery, type);
   };
 
-  // Filter and sort uploads
+  // Filter and sort uploads (client-side filtering for additional responsiveness)
   const filteredAndSortedUploads = useMemo(() => {
-    let filtered = mockUploads;
+    let filtered = uploads;
 
-    // Apply search filter
+    // Apply search filter (if API doesn't handle it completely)
     if (searchQuery) {
       filtered = filtered.filter(
-        (upload) =>
+        (upload: Upload) =>
           upload.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           upload.uploader.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Apply type filter
+    // Apply type filter (if API doesn't handle it completely)
     if (filterType !== "all") {
-      filtered = filtered.filter((upload) => upload.mediaType === filterType);
+      filtered = filtered.filter(
+        (upload: Upload) => upload.mediaType === filterType
+      );
     }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
+    // Apply sorting (if API doesn't handle it completely)
+    filtered.sort((a: Upload, b: Upload) => {
       let aValue: any;
       let bValue: any;
 
@@ -195,7 +224,7 @@ const UploadsPage = () => {
     });
 
     return filtered;
-  }, [mockUploads, searchQuery, filterType, sortBy, sortOrder]);
+  }, [uploads, searchQuery, filterType, sortBy, sortOrder]);
 
   return (
     <div className="flex flex-col h-full">
@@ -216,9 +245,18 @@ const UploadsPage = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto pt-4">
+        {error && (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 text-error text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="mb-4 text-center text-muted">Loading uploads...</div>
+        )}
+
         <div className="space-y-2">
           {filteredAndSortedUploads.length > 0 ? (
-            filteredAndSortedUploads.map((upload) => (
+            filteredAndSortedUploads.map((upload: Upload) => (
               <UploadCard
                 key={upload.id}
                 upload={upload}
@@ -248,10 +286,9 @@ const UploadsPage = () => {
           )}
         </div>
 
-        {filteredAndSortedUploads.length > 0 && (
+        {!loading && filteredAndSortedUploads.length > 0 && (
           <div className="mt-4 text-center text-sm text-[#f7a5a5]/60">
-            Showing {filteredAndSortedUploads.length} of {mockUploads.length}{" "}
-            files
+            Showing {filteredAndSortedUploads.length} of {uploads.length} files
           </div>
         )}
       </div>

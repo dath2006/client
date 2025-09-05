@@ -2,28 +2,43 @@
 
 import React, { useState } from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const GeneralSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    siteName: "My Awesome Site",
-    description: "demo",
-    chyrpUrl: "http://127.0.0.1:8080",
-    canonicalUrl: "",
-    contactEmail: "sathishdutt0@gmail.com",
-    timeZone: "UTC",
-    language: "en_US",
-    monospaceFont: true,
-    checkUpdates: false,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Settings saved successfully");
+    },
+    onSaveError: (error: any) => {
+      console.error("Failed to save settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -44,7 +59,7 @@ const GeneralSettingsPage = () => {
           </label>
           <input
             type="text"
-            value={formData.siteName}
+            value={settings.siteName || ""}
             onChange={(e) => handleInputChange("siteName", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           />
@@ -56,7 +71,7 @@ const GeneralSettingsPage = () => {
             Description
           </label>
           <textarea
-            value={formData.description}
+            value={settings.description || ""}
             onChange={(e) => handleInputChange("description", e.target.value)}
             rows={3}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 resize-none"
@@ -70,7 +85,7 @@ const GeneralSettingsPage = () => {
           </label>
           <input
             type="url"
-            value={formData.chyrpUrl}
+            value={settings.chyrpUrl}
             onChange={(e) => handleInputChange("chyrpUrl", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           />
@@ -87,7 +102,7 @@ const GeneralSettingsPage = () => {
           </label>
           <input
             type="url"
-            value={formData.canonicalUrl}
+            value={settings.canonicalUrl}
             onChange={(e) => handleInputChange("canonicalUrl", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           />
@@ -104,7 +119,7 @@ const GeneralSettingsPage = () => {
           </label>
           <input
             type="email"
-            value={formData.contactEmail}
+            value={settings.contactEmail}
             onChange={(e) => handleInputChange("contactEmail", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           />
@@ -116,7 +131,7 @@ const GeneralSettingsPage = () => {
             Time Zone
           </label>
           <select
-            value={formData.timeZone}
+            value={settings.timeZone}
             onChange={(e) => handleInputChange("timeZone", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           >
@@ -135,7 +150,7 @@ const GeneralSettingsPage = () => {
             Language
           </label>
           <select
-            value={formData.language}
+            value={settings.language}
             onChange={(e) => handleInputChange("language", e.target.value)}
             className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
           >
@@ -160,7 +175,7 @@ const GeneralSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.monospaceFont}
+              checked={settings.monospaceFont}
               onChange={(checked) =>
                 handleInputChange("monospaceFont", checked)
               }
@@ -180,7 +195,7 @@ const GeneralSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.checkUpdates}
+              checked={settings.checkUpdates}
               onChange={(checked) => handleInputChange("checkUpdates", checked)}
               label="Check for Updates toggle"
               variant="secondary"

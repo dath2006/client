@@ -1,22 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const SyntaxHighlightingSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    stylesheet: "default",
-    copyButton: false,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Syntax highlighting settings saved successfully");
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save syntax highlighting settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving syntax highlighting settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   const stylesheetOptions = [
     {
@@ -76,7 +98,7 @@ const SyntaxHighlightingSettingsPage = () => {
   }) => (
     <label
       className={`p-4 bg-surface rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
-        formData.stylesheet === option.value
+        settings.stylesheet === option.value
           ? "border-primary bg-primary/5"
           : "border-default hover:border-primary/30"
       }`}
@@ -85,7 +107,7 @@ const SyntaxHighlightingSettingsPage = () => {
         type="radio"
         name="stylesheet"
         value={option.value}
-        checked={formData.stylesheet === option.value}
+        checked={settings.stylesheet === option.value}
         onChange={(e) => handleInputChange("stylesheet", e.target.value)}
         className="sr-only"
       />
@@ -158,6 +180,12 @@ const SyntaxHighlightingSettingsPage = () => {
         </p>
       </div>
 
+      {error && (
+        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+          <p className="text-error text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Theme Selection */}
         <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
@@ -200,7 +228,7 @@ const SyntaxHighlightingSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.copyButton}
+              checked={settings.copyButton}
               onChange={(checked) => handleInputChange("copyButton", checked)}
               label="Copy Button toggle"
               variant="primary"
@@ -219,8 +247,8 @@ const SyntaxHighlightingSettingsPage = () => {
               How your code will look:
             </h4>
             <div className="relative">
-              {generateCodePreview(formData.stylesheet)}
-              {formData.copyButton && (
+              {generateCodePreview(settings.stylesheet)}
+              {settings.copyButton && (
                 <button className="absolute top-2 right-2 px-2 py-1 bg-primary text-white text-xs rounded hover:bg-primary/90 transition-colors">
                   📋 Copy
                 </button>
@@ -230,10 +258,10 @@ const SyntaxHighlightingSettingsPage = () => {
               Theme:{" "}
               {
                 stylesheetOptions.find(
-                  (opt) => opt.value === formData.stylesheet
+                  (opt) => opt.value === settings.stylesheet
                 )?.label
               }
-              {formData.copyButton && " • Copy button enabled"}
+              {settings.copyButton && " • Copy button enabled"}
             </p>
           </div>
         </div>
@@ -366,7 +394,7 @@ const SyntaxHighlightingSettingsPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex gap-1">
                   {stylesheetOptions
-                    .find((opt) => opt.value === formData.stylesheet)
+                    .find((opt) => opt.value === settings.stylesheet)
                     ?.colors.map((color, index) => (
                       <div
                         key={index}
@@ -378,7 +406,7 @@ const SyntaxHighlightingSettingsPage = () => {
                 <span className="text-sm text-secondary">
                   {
                     stylesheetOptions.find(
-                      (opt) => opt.value === formData.stylesheet
+                      (opt) => opt.value === settings.stylesheet
                     )?.label
                   }
                 </span>
@@ -389,11 +417,11 @@ const SyntaxHighlightingSettingsPage = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.copyButton ? "bg-success" : "bg-warning"
+                    settings.copyButton ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.copyButton ? "Enabled" : "Disabled"}
+                  {settings.copyButton ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>
@@ -404,9 +432,10 @@ const SyntaxHighlightingSettingsPage = () => {
         <div className="flex justify-end pt-6">
           <button
             onClick={handleSave}
-            className="btn-primary px-6 py-3 font-medium"
+            disabled={saving}
+            className="btn-primary px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Update Syntax Highlighting Settings
+            {saving ? "Saving..." : "Update Syntax Highlighting Settings"}
           </button>
         </div>
       </div>

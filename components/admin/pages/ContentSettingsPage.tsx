@@ -1,35 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const ContentSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    postsPerBlogPage: 5,
-    postsInFeed: 20,
-    itemsPerAdminPage: 25,
-    defaultPostStatus: "public",
-    defaultPageStatus: "public",
-    uploadsPath: "/uploads/",
-    uploadSizeLimit: 10,
-    feedFormat: "JSON",
-    searchPages: true,
-    webmentions: true,
-    unicodeEmoticons: true,
-    markdown: true,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Content settings saved successfully");
+    },
+    onSaveError: (error: any) => {
+      console.error("Failed to save content settings:", error);
+    },
   });
 
   const handleInputChange = (
     field: string,
     value: string | number | boolean
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving content settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -56,7 +68,7 @@ const ContentSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.postsPerBlogPage}
+              value={settings.postsPerBlogPage || 5}
               onChange={(e) =>
                 handleInputChange(
                   "postsPerBlogPage",
@@ -76,7 +88,7 @@ const ContentSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.postsInFeed}
+              value={settings.postsInFeed || 20}
               onChange={(e) =>
                 handleInputChange("postsInFeed", parseInt(e.target.value) || 0)
               }
@@ -93,7 +105,7 @@ const ContentSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.itemsPerAdminPage}
+              value={settings.itemsPerAdminPage || 25}
               onChange={(e) =>
                 handleInputChange(
                   "itemsPerAdminPage",
@@ -119,7 +131,7 @@ const ContentSettingsPage = () => {
               Default Post Status
             </label>
             <select
-              value={formData.defaultPostStatus}
+              value={settings.defaultPostStatus || "public"}
               onChange={(e) =>
                 handleInputChange("defaultPostStatus", e.target.value)
               }
@@ -138,7 +150,7 @@ const ContentSettingsPage = () => {
               Default Page Status
             </label>
             <select
-              value={formData.defaultPageStatus}
+              value={settings.defaultPageStatus || "public"}
               onChange={(e) =>
                 handleInputChange("defaultPageStatus", e.target.value)
               }
@@ -167,7 +179,7 @@ const ContentSettingsPage = () => {
             </label>
             <input
               type="text"
-              value={formData.uploadsPath}
+              value={settings.uploadsPath}
               onChange={(e) => handleInputChange("uploadsPath", e.target.value)}
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
             />
@@ -184,7 +196,7 @@ const ContentSettingsPage = () => {
             </label>
             <input
               type="number"
-              value={formData.uploadSizeLimit}
+              value={settings.uploadSizeLimit}
               onChange={(e) =>
                 handleInputChange(
                   "uploadSizeLimit",
@@ -210,7 +222,7 @@ const ContentSettingsPage = () => {
               Feed Format
             </label>
             <select
-              value={formData.feedFormat}
+              value={settings.feedFormat}
               onChange={(e) => handleInputChange("feedFormat", e.target.value)}
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200"
             >
@@ -238,7 +250,7 @@ const ContentSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.searchPages}
+              checked={settings.searchPages}
               onChange={(checked) => handleInputChange("searchPages", checked)}
               label="Search Pages toggle"
               variant="primary"
@@ -257,7 +269,7 @@ const ContentSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.webmentions}
+              checked={settings.webmentions}
               onChange={(checked) => handleInputChange("webmentions", checked)}
               label="Webmentions toggle"
               variant="secondary"
@@ -276,7 +288,7 @@ const ContentSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.unicodeEmoticons}
+              checked={settings.unicodeEmoticons}
               onChange={(checked) =>
                 handleInputChange("unicodeEmoticons", checked)
               }
@@ -297,7 +309,7 @@ const ContentSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.markdown}
+              checked={settings.markdown}
               onChange={(checked) => handleInputChange("markdown", checked)}
               label="Markdown toggle"
               variant="primary"

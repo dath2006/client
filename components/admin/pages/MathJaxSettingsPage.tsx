@@ -1,27 +1,49 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const MathJaxSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    texLatexSupport: false,
-    mathmlSupport: false,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("MathJax settings saved successfully");
+    },
+    onSaveError: (error: any) => {
+      console.error("Failed to save MathJax settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving MathJax settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   const generateMathPreview = () => {
     return (
       <div className="space-y-4">
-        {formData.texLatexSupport && (
+        {settings.texLatexSupport && (
           <div className="p-4 bg-card rounded-lg border border-success/20">
             <h5 className="font-medium text-success mb-2">
               TeX/LaTeX Examples
@@ -43,7 +65,7 @@ const MathJaxSettingsPage = () => {
           </div>
         )}
 
-        {formData.mathmlSupport && (
+        {settings.mathmlSupport && (
           <div className="p-4 bg-card rounded-lg border border-primary/20">
             <h5 className="font-medium text-primary mb-2">MathML Example</h5>
             <div className="font-mono text-sm">
@@ -59,7 +81,7 @@ const MathJaxSettingsPage = () => {
           </div>
         )}
 
-        {!formData.texLatexSupport && !formData.mathmlSupport && (
+        {!settings.texLatexSupport && !settings.mathmlSupport && (
           <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg text-center">
             <p className="text-warning font-medium">No math support enabled</p>
             <p className="text-secondary text-sm mt-1">
@@ -101,7 +123,7 @@ const MathJaxSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.texLatexSupport}
+              checked={settings.texLatexSupport}
               onChange={(checked) =>
                 handleInputChange("texLatexSupport", checked)
               }
@@ -123,7 +145,7 @@ const MathJaxSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.mathmlSupport}
+              checked={settings.mathmlSupport}
               onChange={(checked) =>
                 handleInputChange("mathmlSupport", checked)
               }
@@ -159,7 +181,7 @@ const MathJaxSettingsPage = () => {
               <div className="flex items-center gap-2 mb-3">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.texLatexSupport ? "bg-success" : "bg-gray-300"
+                    settings.texLatexSupport ? "bg-success" : "bg-gray-300"
                   }`}
                 ></span>
                 <h4 className="font-medium text-primary">
@@ -201,7 +223,7 @@ const MathJaxSettingsPage = () => {
               <div className="flex items-center gap-2 mb-3">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.mathmlSupport ? "bg-primary" : "bg-gray-300"
+                    settings.mathmlSupport ? "bg-primary" : "bg-gray-300"
                   }`}
                 ></span>
                 <h4 className="font-medium text-primary">MathML Format</h4>
@@ -359,15 +381,15 @@ const MathJaxSettingsPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.texLatexSupport ? "bg-success" : "bg-warning"
+                    settings.texLatexSupport ? "bg-success" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.texLatexSupport ? "Enabled" : "Disabled"}
+                  {settings.texLatexSupport ? "Enabled" : "Disabled"}
                 </span>
               </div>
               <p className="text-xs text-secondary">
-                {formData.texLatexSupport
+                {settings.texLatexSupport
                   ? "Supports $$ and \\( \\) delimiters for math notation"
                   : "TeX and LaTeX input is currently disabled"}
               </p>
@@ -377,15 +399,15 @@ const MathJaxSettingsPage = () => {
               <div className="flex items-center gap-2 mb-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.mathmlSupport ? "bg-primary" : "bg-warning"
+                    settings.mathmlSupport ? "bg-primary" : "bg-warning"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.mathmlSupport ? "Enabled" : "Disabled"}
+                  {settings.mathmlSupport ? "Enabled" : "Disabled"}
                 </span>
               </div>
               <p className="text-xs text-secondary">
-                {formData.mathmlSupport
+                {settings.mathmlSupport
                   ? "Supports MathML markup for mathematical expressions"
                   : "MathML input is currently disabled"}
               </p>

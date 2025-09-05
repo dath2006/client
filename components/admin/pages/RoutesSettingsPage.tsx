@@ -1,23 +1,44 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const RoutesSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    cleanUrls: false,
-    homepage: false,
-    postViewUrl: "(year)/(month)/(day)/(url)/",
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Routes settings saved successfully");
+    },
+    onSaveError: (error) => {
+      console.error("Failed to save routes settings:", error);
+    },
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving routes settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   const handleDownloadRewriteFiles = () => {
     // Handle download logic here
@@ -71,6 +92,12 @@ const RoutesSettingsPage = () => {
         </p>
       </div>
 
+      {error && (
+        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+          <p className="text-error text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Clean URLs Settings */}
         <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
@@ -90,7 +117,7 @@ const RoutesSettingsPage = () => {
             </div>
             <div className="flex items-center gap-3">
               <Toggle
-                checked={formData.cleanUrls}
+                checked={settings.cleanUrls}
                 onChange={(checked) => handleInputChange("cleanUrls", checked)}
                 label="Clean URLs toggle"
                 variant="primary"
@@ -100,7 +127,7 @@ const RoutesSettingsPage = () => {
           </div>
 
           {/* Download Rewrite Files */}
-          {formData.cleanUrls && (
+          {settings.cleanUrls && (
             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -133,7 +160,7 @@ const RoutesSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.homepage}
+              checked={settings.homepage}
               onChange={(checked) => handleInputChange("homepage", checked)}
               label="Homepage toggle"
               variant="secondary"
@@ -148,7 +175,7 @@ const RoutesSettingsPage = () => {
             Post View URL Structure
           </h2>
 
-          {!formData.cleanUrls && (
+          {!settings.cleanUrls && (
             <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg">
               <p className="text-sm text-warning font-medium mb-1">
                 ⚠️ Clean URLs Required
@@ -166,9 +193,9 @@ const RoutesSettingsPage = () => {
             </label>
             <input
               type="text"
-              value={formData.postViewUrl}
+              value={settings.postViewUrl}
               onChange={(e) => handleInputChange("postViewUrl", e.target.value)}
-              disabled={!formData.cleanUrls}
+              disabled={!settings.cleanUrls}
               placeholder="(year)/(month)/(day)/(url)/"
               className="w-full p-3 border border-default rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-mono text-sm"
             />
@@ -187,7 +214,7 @@ const RoutesSettingsPage = () => {
                   onClick={() =>
                     handleInputChange("postViewUrl", preset.pattern)
                   }
-                  disabled={!formData.cleanUrls}
+                  disabled={!settings.cleanUrls}
                   className="p-3 text-left bg-surface hover:bg-default/50 border border-default rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="font-medium text-primary text-sm">
@@ -230,7 +257,7 @@ const RoutesSettingsPage = () => {
         </div>
 
         {/* URL Preview */}
-        {formData.cleanUrls && (
+        {settings.cleanUrls && (
           <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
             <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
               URL Preview
@@ -243,9 +270,9 @@ const RoutesSettingsPage = () => {
                 <div className="font-mono text-sm">
                   <span className="text-secondary">https://yourblog.com/</span>
                   <span className="text-primary font-medium">
-                    {formData.postViewUrl.replace(
+                    {settings.postViewUrl.replace(
                       /\((.*?)\)/g,
-                      (match, token) => {
+                      (match: string, token: string) => {
                         const examples = {
                           year: "2024",
                           month: "08",
@@ -276,9 +303,10 @@ const RoutesSettingsPage = () => {
         <div className="flex justify-end pt-6">
           <button
             onClick={handleSave}
-            className="btn-primary px-6 py-3 font-medium"
+            disabled={saving}
+            className="btn-primary px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Update Routes Settings
+            {saving ? "Saving..." : "Update Routes Settings"}
           </button>
         </div>
       </div>

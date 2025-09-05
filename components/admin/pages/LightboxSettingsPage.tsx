@@ -1,26 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Toggle from "../../common/Toggle";
+import { useSettings } from "@/hooks/useSettings";
 
 const LightboxSettingsPage = () => {
-  const [formData, setFormData] = useState({
-    background: "gray",
-    edgeSpacing: 24,
-    protectImages: false,
+  const {
+    settings,
+    loading,
+    saving,
+    error,
+    updateSetting,
+    saveSettings,
+    resetSettings,
+  } = useSettings({
+    onSaveSuccess: () => {
+      console.log("Lightbox settings saved successfully");
+    },
+    onSaveError: (error: any) => {
+      console.error("Failed to save lightbox settings:", error);
+    },
   });
 
   const handleInputChange = (
     field: string,
     value: string | number | boolean
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    updateSetting(field, value);
   };
 
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving lightbox settings:", formData);
+  const handleSave = async () => {
+    await saveSettings();
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-secondary">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   const backgroundOptions = [
     {
@@ -62,7 +83,7 @@ const LightboxSettingsPage = () => {
   }) => (
     <label
       className={`p-4 bg-surface rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-sm ${
-        formData.background === option.value
+        settings.background === option.value
           ? "border-primary bg-primary/5"
           : "border-default hover:border-primary/30"
       }`}
@@ -71,7 +92,7 @@ const LightboxSettingsPage = () => {
         type="radio"
         name="background"
         value={option.value}
-        checked={formData.background === option.value}
+        checked={settings.background === option.value}
         onChange={(e) => handleInputChange("background", e.target.value)}
         className="sr-only"
       />
@@ -134,7 +155,7 @@ const LightboxSettingsPage = () => {
                 min="0"
                 max="100"
                 step="1"
-                value={formData.edgeSpacing}
+                value={settings.edgeSpacing}
                 onChange={(e) =>
                   handleInputChange("edgeSpacing", parseInt(e.target.value))
                 }
@@ -145,7 +166,7 @@ const LightboxSettingsPage = () => {
                   type="number"
                   min="0"
                   max="100"
-                  value={formData.edgeSpacing}
+                  value={settings.edgeSpacing}
                   onChange={(e) =>
                     handleInputChange(
                       "edgeSpacing",
@@ -181,7 +202,7 @@ const LightboxSettingsPage = () => {
               </p>
             </div>
             <Toggle
-              checked={formData.protectImages}
+              checked={settings.protectImages}
               onChange={(checked) =>
                 handleInputChange("protectImages", checked)
               }
@@ -191,7 +212,7 @@ const LightboxSettingsPage = () => {
             />
           </div>
 
-          {formData.protectImages && (
+          {settings.protectImages && (
             <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg">
               <p className="text-sm text-warning font-medium mb-1">
                 ⚠️ Protection Notice
@@ -221,9 +242,9 @@ const LightboxSettingsPage = () => {
                 className="relative w-full h-64 rounded-lg flex items-center justify-center"
                 style={{
                   backgroundColor: backgroundOptions.find(
-                    (opt) => opt.value === formData.background
+                    (opt) => opt.value === settings.background
                   )?.color,
-                  padding: `${formData.edgeSpacing}px`,
+                  padding: `${settings.edgeSpacing}px`,
                 }}
               >
                 <div className="bg-white rounded-lg shadow-2xl p-4 max-w-sm">
@@ -233,7 +254,7 @@ const LightboxSettingsPage = () => {
                   <p className="text-xs text-gray-600 text-center">
                     Sample Image
                   </p>
-                  {formData.protectImages && (
+                  {settings.protectImages && (
                     <div className="absolute top-2 right-2 bg-warning/80 text-white text-xs px-2 py-1 rounded">
                       🔒 Protected
                     </div>
@@ -244,10 +265,10 @@ const LightboxSettingsPage = () => {
                 </button>
               </div>
               <p className="text-xs text-secondary mt-3 text-center">
-                Edge spacing: {formData.edgeSpacing}px • Background:{" "}
+                Edge spacing: {settings.edgeSpacing}px • Background:{" "}
                 {
                   backgroundOptions.find(
-                    (opt) => opt.value === formData.background
+                    (opt) => opt.value === settings.background
                   )?.label
                 }
               </p>
@@ -361,12 +382,12 @@ const LightboxSettingsPage = () => {
                   className="w-4 h-4 rounded border border-default/30"
                   style={{
                     backgroundColor: backgroundOptions.find(
-                      (opt) => opt.value === formData.background
+                      (opt) => opt.value === settings.background
                     )?.color,
                   }}
                 ></div>
                 <span className="text-sm text-secondary capitalize">
-                  {formData.background}
+                  {settings.background}
                 </span>
               </div>
             </div>
@@ -374,7 +395,7 @@ const LightboxSettingsPage = () => {
               <h4 className="font-medium text-primary mb-2">Edge Spacing</h4>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-mono">
-                  {formData.edgeSpacing}
+                  {settings.edgeSpacing}
                 </span>
                 <span className="text-sm text-secondary">pixels</span>
               </div>
@@ -386,11 +407,11 @@ const LightboxSettingsPage = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`w-3 h-3 rounded-full ${
-                    formData.protectImages ? "bg-warning" : "bg-success"
+                    settings.protectImages ? "bg-warning" : "bg-success"
                   }`}
                 ></span>
                 <span className="text-sm text-secondary">
-                  {formData.protectImages ? "Enabled" : "Disabled"}
+                  {settings.protectImages ? "Enabled" : "Disabled"}
                 </span>
               </div>
             </div>

@@ -11,7 +11,7 @@ interface UserModalProps {
     id: string;
     name: string;
     email: string;
-    role: "admin" | "editor" | "contributor" | "member";
+    role: "admin" | "friend" | "banned" | "guest" | "member";
     username?: string;
     fullName?: string;
     website?: string;

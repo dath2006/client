@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GroupCard from "@/components/admin/groups/GroupCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import GroupModal, {
   GroupFormData,
 } from "@/components/admin/groups/GroupModal";
+import { adminAPI, ApiError } from "@/lib/api";
 
 interface Group {
   id: string;
@@ -16,102 +17,48 @@ interface Group {
   permissions: string[];
 }
 
+// Helper to map API group to local Group type
+function mapApiGroup(apiGroup: any): Group {
+  return {
+    id: apiGroup.id,
+    name: apiGroup.name,
+    userCount: apiGroup.userCount || 0,
+    createdAt: apiGroup.createdAt ? new Date(apiGroup.createdAt) : new Date(),
+    description: apiGroup.description,
+    permissions: apiGroup.permissions || [],
+  };
+}
+
 const GroupsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Predefined system groups
-  const mockGroups: Group[] = [
-    {
-      id: "1",
-      name: "Admin",
-      userCount: 2,
-      createdAt: new Date("2024-01-01"),
-      description: "Full system access with all administrative privileges",
-      permissions: [
-        "add_users",
-        "delete_users",
-        "edit_users",
-        "add_groups",
-        "delete_groups",
-        "edit_groups",
-        "change_settings",
-        "delete_posts",
-        "edit_posts",
-        "add_posts",
-        "view_private_posts",
-        "manage_categories",
-        "toggle_extensions",
-        "export_content",
-        "import_content",
-      ],
-    },
-    {
-      id: "2",
-      name: "Member",
-      userCount: 45,
-      createdAt: new Date("2024-01-01"),
-      description: "Regular registered users with standard posting privileges",
-      permissions: [
-        "add_posts",
-        "add_comments",
-        "like_posts",
-        "edit_own_posts",
-        "edit_own_comments",
-        "delete_own_posts",
-        "delete_own_comments",
-        "view_site",
-        "view_pages",
-      ],
-    },
-    {
-      id: "3",
-      name: "Friend",
-      userCount: 12,
-      createdAt: new Date("2024-02-15"),
-      description: "Trusted users with additional content access",
-      permissions: [
-        "add_posts",
-        "add_comments",
-        "like_posts",
-        "unlike_posts",
-        "view_private_posts",
-        "view_site",
-        "view_pages",
-        "edit_own_posts",
-        "edit_own_comments",
-        "delete_own_posts",
-        "delete_own_comments",
-      ],
-    },
-    {
-      id: "4",
-      name: "Banned",
-      userCount: 3,
-      createdAt: new Date("2024-01-01"),
-      description: "Restricted users with limited or no access",
-      permissions: ["view_site"],
-    },
-    {
-      id: "5",
-      name: "Guest",
-      userCount: 0,
-      createdAt: new Date("2024-01-01"),
-      description: "Anonymous visitors with read-only access",
-      permissions: ["view_site", "view_pages"],
-    },
-  ];
+  // Fetch groups from API
+  const fetchGroups = async (search: string = "") => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: any = {};
+      if (search) params.search = search;
+      const response = await adminAPI.getGroups(params);
+      setGroups((response.data || []).map(mapApiGroup));
+    } catch (err: any) {
+      setError(err?.message || "Failed to fetch groups");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Initialize groups with mock data
-  React.useEffect(() => {
-    setGroups(mockGroups);
+  useEffect(() => {
+    fetchGroups();
   }, []);
 
   const handleEdit = (id: string) => {
-    console.log("Editing group:", id);
     const group = groups.find((g) => g.id === id);
     if (group) {
       setSelectedGroup(group);
@@ -120,7 +67,7 @@ const GroupsPage = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const group = groups.find((g) => g.id === id);
     if (group) {
       const isSystem = [
@@ -134,18 +81,33 @@ const GroupsPage = () => {
         alert("System groups cannot be deleted.");
         return;
       }
-      console.log("Deleting group:", id);
-      setGroups((prev) => prev.filter((group) => group.id !== id));
+
+      if (
+        !window.confirm(
+          `Are you sure you want to delete the group "${group.name}"?`
+        )
+      )
+        return;
+
+      setLoading(true);
+      setError(null);
+      try {
+        await adminAPI.deleteGroup(id);
+        setGroups((prev) => prev.filter((group) => group.id !== id));
+      } catch (err: any) {
+        setError(err?.message || "Failed to delete group");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    // Add search logic here
+    await fetchGroups(query);
   };
 
   const handleNew = () => {
-    console.log("Creating new group");
     setSelectedGroup(null);
     setModalMode("create");
     setIsModalOpen(true);
@@ -156,32 +118,37 @@ const GroupsPage = () => {
     setSelectedGroup(null);
   };
 
-  const handleGroupSave = (groupData: GroupFormData) => {
-    if (modalMode === "create") {
-      // Create new group
-      const newGroup: Group = {
-        id: Date.now().toString(),
+  const handleGroupSave = async (groupData: GroupFormData) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Transform GroupFormData to API format
+      const apiGroupData = {
         name: groupData.name,
-        userCount: 0,
-        createdAt: new Date(),
         description: groupData.description,
         permissions: groupData.permissions,
       };
-      setGroups((prev) => [...prev, newGroup]);
-    } else if (modalMode === "edit" && selectedGroup) {
-      // Update existing group
-      setGroups((prev) =>
-        prev.map((group) =>
-          group.id === selectedGroup.id
-            ? {
-                ...group,
-                name: groupData.name,
-                description: groupData.description,
-                permissions: groupData.permissions,
-              }
-            : group
-        )
-      );
+
+      if (modalMode === "create") {
+        const created = await adminAPI.createGroup(apiGroupData);
+        setGroups((prev) => [...prev, mapApiGroup(created)]);
+      } else if (modalMode === "edit" && selectedGroup) {
+        const updated = await adminAPI.updateGroup(
+          selectedGroup.id,
+          apiGroupData
+        );
+        setGroups((prev) =>
+          prev.map((group) =>
+            group.id === selectedGroup.id ? mapApiGroup(updated) : group
+          )
+        );
+      }
+      setIsModalOpen(false);
+      setSelectedGroup(null);
+    } catch (err: any) {
+      setError(err?.message || "Failed to save group");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,6 +158,14 @@ const GroupsPage = () => {
         <SearchHeader title="Group" onSearch={handleSearch} onNew={handleNew} />
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
+        {error && (
+          <div className="mb-4 p-3 bg-error/10 border border-error/20 text-error text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+        {loading && (
+          <div className="mb-4 text-center text-muted">Loading groups...</div>
+        )}
         <div className="grid gap-4">
           {groups.map((group) => (
             <GroupCard
@@ -201,7 +176,7 @@ const GroupsPage = () => {
             />
           ))}
 
-          {groups.length === 0 && (
+          {!loading && groups.length === 0 && (
             <div className="bg-white/5 rounded-lg border border-[#f7a5a5]/20 p-8 text-center">
               <h3 className="text-lg font-medium text-[#f7a5a5] mb-2">
                 No groups found
