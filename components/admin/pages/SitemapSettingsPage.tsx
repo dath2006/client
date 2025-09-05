@@ -1,25 +1,30 @@
 "use client";
 
 import React from "react";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+import Toggle from "../../common/Toggle";
 import { useSettings } from "@/hooks/useSettings";
 
+// --- Animation Variants ---
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
 const SitemapSettingsPage = () => {
-  const {
-    settings,
-    loading,
-    saving,
-    error,
-    updateSetting,
-    saveSettings,
-    resetSettings,
-  } = useSettings({
-    onSaveSuccess: () => {
-      console.log("Sitemap settings saved successfully");
-    },
-    onSaveError: (error) => {
-      console.error("Failed to save sitemap settings:", error);
-    },
-  });
+  const { settings, loading, saving, error, updateSetting, saveSettings } =
+    useSettings({
+      onSaveSuccess: () => {
+        console.log("Sitemap settings saved successfully");
+      },
+      onSaveError: (error) => {
+        console.error("Failed to save sitemap settings:", error);
+      },
+    });
 
   const handleInputChange = (field: string, value: string) => {
     updateSetting(field, value);
@@ -29,18 +34,7 @@ const SitemapSettingsPage = () => {
     await saveSettings();
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-secondary">Loading settings...</div>
-        </div>
-      </div>
-    );
-  }
-
   const handleGenerateSitemap = () => {
-    // Handle sitemap generation logic here
     console.log("Generating sitemap...");
   };
 
@@ -96,31 +90,59 @@ const SitemapSettingsPage = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <motion.div
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            className="text-secondary"
+          >
+            Loading settings...
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div className="mb-8">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+      className="max-w-4xl mx-auto p-6 space-y-8"
+    >
+      <motion.div variants={sectionVariants}>
         <h1 className="text-3xl font-bold text-primary mb-2">
           Sitemap Settings
         </h1>
         <p className="text-secondary text-sm">
           Configure XML sitemap generation and update frequency settings
         </p>
-      </div>
+      </motion.div>
 
-      {error && (
-        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
-          <p className="text-error text-sm">{error}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="bg-error/5 border border-error/20 rounded-lg p-4"
+          >
+            <p className="text-error text-sm">{error as string}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="space-y-6">
-        {/* Sitemap Configuration */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+      <div className="space-y-8">
+        <motion.div
+          variants={sectionVariants}
+          className="bg-card rounded-lg card-shadow p-6 space-y-6"
+        >
           <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
             Sitemap Configuration
           </h2>
-
-          {/* Sitemap Path */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-primary">
               Sitemap Path
@@ -136,8 +158,6 @@ const SitemapSettingsPage = () => {
               The directory to which the sitemap is written.
             </p>
           </div>
-
-          {/* Generate Sitemap Button */}
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -148,22 +168,25 @@ const SitemapSettingsPage = () => {
                   Create or update your sitemap.xml file with current content.
                 </p>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleGenerateSitemap}
                 className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
               >
                 Generate Now
-              </button>
+              </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Update Frequency Settings */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+        <motion.div
+          variants={sectionVariants}
+          className="bg-card rounded-lg card-shadow p-6 space-y-6"
+        >
           <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
             Update Frequency Settings
           </h2>
-
           <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg mb-6">
             <p className="text-sm text-warning font-medium mb-1">
               ℹ️ Search Engine Hints
@@ -174,7 +197,6 @@ const SitemapSettingsPage = () => {
               ignore them.
             </p>
           </div>
-
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
             <FrequencySelect
               label="Blog is Updated"
@@ -183,7 +205,6 @@ const SitemapSettingsPage = () => {
               onChange={handleInputChange}
               field="blogUpdateFreq"
             />
-
             <FrequencySelect
               label="Pages are Edited"
               description="How often your static pages are modified"
@@ -191,7 +212,6 @@ const SitemapSettingsPage = () => {
               onChange={handleInputChange}
               field="pagesUpdateFreq"
             />
-
             <FrequencySelect
               label="Posts are Edited"
               description="How often your blog posts are updated"
@@ -200,10 +220,12 @@ const SitemapSettingsPage = () => {
               field="postsUpdateFreq"
             />
           </div>
-        </div>
+        </motion.div>
 
-        {/* Sitemap Information */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+        <motion.div
+          variants={sectionVariants}
+          className="bg-card rounded-lg card-shadow p-6 space-y-6"
+        >
           <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
             About XML Sitemaps
           </h2>
@@ -241,17 +263,20 @@ const SitemapSettingsPage = () => {
               </ul>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Frequency Guide */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+        <motion.div
+          variants={sectionVariants}
+          className="bg-card rounded-lg card-shadow p-6 space-y-6"
+        >
           <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
             Frequency Guidelines
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {frequencyOptions.map((option) => (
-              <div
+              <motion.div
                 key={option.value}
+                whileHover={{ y: -3, boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}
                 className="p-4 bg-surface rounded-lg border border-default"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -263,13 +288,15 @@ const SitemapSettingsPage = () => {
                   </code>
                 </div>
                 <p className="text-xs text-secondary">{option.description}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Current Settings Summary */}
-        <div className="bg-card rounded-lg card-shadow p-6 space-y-6">
+        <motion.div
+          variants={sectionVariants}
+          className="bg-card rounded-lg card-shadow p-6 space-y-6"
+        >
           <h2 className="text-xl font-semibold text-primary mb-4 border-b border-default pb-2">
             Current Configuration
           </h2>
@@ -278,50 +305,79 @@ const SitemapSettingsPage = () => {
               <h4 className="font-medium text-primary mb-2">
                 Sitemap Location
               </h4>
-              <code className="text-sm font-mono text-secondary break-all">
-                {settings.sitemapPath}/sitemap.xml
-              </code>
+              <AnimatePresence mode="wait">
+                <motion.code
+                  key={settings.sitemapPath}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sm font-mono text-secondary break-all"
+                >
+                  {settings.sitemapPath}/sitemap.xml
+                </motion.code>
+              </AnimatePresence>
             </div>
             <div className="p-4 bg-surface rounded-lg border border-default">
               <h4 className="font-medium text-primary mb-2">
                 Update Frequencies
               </h4>
               <div className="space-y-1 text-sm text-secondary">
-                <div>
-                  Blog:{" "}
-                  <span className="capitalize font-medium">
-                    {settings.blogUpdateFreq}
-                  </span>
-                </div>
-                <div>
-                  Pages:{" "}
-                  <span className="capitalize font-medium">
-                    {settings.pagesUpdateFreq}
-                  </span>
-                </div>
-                <div>
-                  Posts:{" "}
-                  <span className="capitalize font-medium">
-                    {settings.postsUpdateFreq}
-                  </span>
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`blog-${settings.blogUpdateFreq}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    Blog:{" "}
+                    <span className="capitalize font-medium">
+                      {settings.blogUpdateFreq}
+                    </span>
+                  </motion.div>
+                  <motion.div
+                    key={`pages-${settings.pagesUpdateFreq}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    Pages:{" "}
+                    <span className="capitalize font-medium">
+                      {settings.pagesUpdateFreq}
+                    </span>
+                  </motion.div>
+                  <motion.div
+                    key={`posts-${settings.postsUpdateFreq}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    Posts:{" "}
+                    <span className="capitalize font-medium">
+                      {settings.postsUpdateFreq}
+                    </span>
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Save Button */}
-        <div className="flex justify-end pt-6">
-          <button
+        <motion.div
+          variants={sectionVariants}
+          className="flex justify-end pt-6"
+        >
+          <motion.button
             onClick={handleSave}
             disabled={saving}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
             className="btn-primary px-6 py-3 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : "Save Sitemap Settings"}
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

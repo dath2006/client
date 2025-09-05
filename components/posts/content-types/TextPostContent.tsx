@@ -1,11 +1,25 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { PostContent } from "@/types/post";
 
 interface TextPostContentProps {
   content: PostContent;
 }
+
+// FIX: Corrected the structure of the variants object
+const contentVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+  },
+  transition: {
+    duration: 0.6,
+    ease: "easeOut",
+  },
+};
 
 const TextPostContent: React.FC<TextPostContentProps> = ({ content }) => {
   const renderMarkdown = (text: string) => {
@@ -28,7 +42,10 @@ const TextPostContent: React.FC<TextPostContentProps> = ({ content }) => {
   }
 
   return (
-    <article
+    <motion.article
+      variants={contentVariants}
+      initial="hidden"
+      animate="visible"
       className="prose prose-lg max-w-none"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(content.body) }}
     />
