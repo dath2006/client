@@ -17,9 +17,12 @@ import {
   UpdatePostData,
 } from "@/lib/api";
 import { Post, PostStatus } from "@/types/post";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 const PostsPageContent = () => {
   const { isAdmin, isLoading: isCheckingAuth, hasAccess } = useRequireAdmin();
+  const canAddPosts = useHasPermission("add_posts", true);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -179,7 +182,7 @@ const PostsPageContent = () => {
       // Additional metadata fields (may need to be added to API interface)
       rightsHolder: postData.rightsHolder,
       license: postData.license,
-      isOriginalWork: postData.isOriginalWork,
+      isOriginalWork: postData.originalWork,
     };
 
     if (modalMode === "edit" && selectedPost) {
@@ -263,6 +266,7 @@ const PostsPageContent = () => {
           onSearch={handleSearch}
           onNew={handleNew}
           isLoading={isSearching}
+          hideNew={!canAddPosts}
         />
 
         {/* Error message */}

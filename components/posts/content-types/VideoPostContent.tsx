@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import { PostContent } from "@/types/post";
 import { Play, Pause, Volume2, Maximize, Download } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface VideoPostContentProps {
   content: PostContent;
@@ -108,9 +109,12 @@ const VideoPostContent: React.FC<VideoPostContentProps> = ({ content }) => {
       </div>
 
       {/* Video Description */}
-      {content.audioDescription && (
-        <div className="text-text-secondary text-sm leading-relaxed bg-card p-4 rounded-lg">
-          {content.audioDescription}
+      {(content.body || content.audioDescription) && (
+        <div className="bg-card p-4 rounded-lg">
+          <MarkdownContent
+            content={content.body || content.audioDescription || ""}
+            className="text-text-secondary text-sm leading-relaxed"
+          />
         </div>
       )}
     </div>

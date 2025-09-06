@@ -12,18 +12,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useGlobalPermissions } from "@/hooks/useGlobalPermissions";
+import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 
 interface NavItem {
   name: string;
   subitems?: string[];
 }
 
-const navItems: NavItem[] = [
+let navItems: NavItem[] = [
   {
     name: "Manage",
     subitems: [
       "Posts",
-      "Pages",
       "Users",
       "Groups",
       "Uploads",
@@ -31,29 +32,15 @@ const navItems: NavItem[] = [
       "Categories",
       "Comments",
       "Spam",
-      "Webmentions",
     ],
   },
   {
     name: "Settings",
-    subitems: [
-      "General",
-      "Content",
-      "Usersettings",
-      "CommentsSettings",
-      "Routes",
-      "Sitemap",
-      "ReadMore",
-      "Likes",
-      "Cascade",
-      "Lightbox",
-      "SyntaxHighlighting",
-      "MathJax",
-    ],
+    subitems: ["General", "Content", "Usersettings", "CommentsSettings"],
   },
   {
     name: "Extend",
-    subitems: ["Modules", "Feathers", "Themes"],
+    subitems: ["Modules", "Feathers"],
   },
 ];
 
@@ -62,6 +49,9 @@ const Sidebar = () => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
+  const { canChangeSettings, canManageCategories } = useGlobalPermissions();
+  const { isModuleEnabled } = useGlobalSettings();
+  const commentsEnabled = isModuleEnabled("comments");
 
   // Get current active section from pathname
   const getCurrentSection = () => {
@@ -129,6 +119,29 @@ const Sidebar = () => {
     return currentSection === sectionName;
   };
 
+  navItems = navItems.map((item) => {
+    if (item.name === "Manage") {
+      return {
+        ...item,
+        subitems: item.subitems?.filter(
+          (subitem) =>
+            (subitem !== "Categories" || canManageCategories) &&
+            (subitem !== "Comments" || commentsEnabled) &&
+            (subitem !== "Spam" || commentsEnabled)
+        ),
+      };
+    }
+    if (item.name === "Settings") {
+      return {
+        ...item,
+        subitems: item.subitems?.filter(
+          (subitem) => subitem !== "CommentsSettings" || commentsEnabled
+        ),
+      };
+    }
+    return item;
+  });
+
   return (
     <div
       className={`sidebar-gradient h-screen flex flex-col transition-all duration-300 rounded-r-lg shadow-lg
@@ -147,57 +160,59 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex-1 overflow-y-auto mt-8 pb-4">
-        {navItems.map((item) => (
-          <div key={item.name} className="mb-2">
-            <button
-              onClick={() => toggleItem(item.name)}
-              className={`w-full text-left p-4 flex items-center justify-between
-              text-white hover:bg-white/10 transition-colors rounded-lg mx-2
-              ${expandedItems.includes(item.name) ? "bg-white/10" : ""}`}
-              suppressHydrationWarning={true}
-            >
-              <span className="flex items-center">
-                {!isOpen ? (
-                  item.name === "Manage" ? (
-                    <LayoutGrid size={20} />
-                  ) : item.name === "Settings" ? (
-                    <Settings size={20} />
+        {navItems
+          .filter((item) => item.name !== "Settings" || canChangeSettings)
+          .map((item) => (
+            <div key={item.name} className="mb-2">
+              <button
+                onClick={() => toggleItem(item.name)}
+                className={`w-full text-left p-4 flex items-center justify-between
+                  text-white hover:bg-white/10 transition-colors rounded-lg mx-2
+                  ${expandedItems.includes(item.name) ? "bg-white/10" : ""}`}
+                suppressHydrationWarning={true}
+              >
+                <span className="flex items-center">
+                  {!isOpen ? (
+                    item.name === "Manage" ? (
+                      <LayoutGrid size={20} />
+                    ) : item.name === "Settings" ? (
+                      <Settings size={20} />
+                    ) : (
+                      <PackagePlus size={20} />
+                    )
                   ) : (
-                    <PackagePlus size={20} />
-                  )
-                ) : (
-                  item.name
-                )}
-              </span>
-              {isOpen &&
-                (expandedItems.includes(item.name) ? (
-                  <ChevronDown size={16} />
-                ) : (
-                  <ChevronRight size={16} />
-                ))}
-            </button>
+                    item.name
+                  )}
+                </span>
+                {isOpen &&
+                  (expandedItems.includes(item.name) ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  ))}
+              </button>
 
-            {isOpen && expandedItems.includes(item.name) && (
-              <div className="ml-4 border-l-2 border-accent/30">
-                {item.subitems?.map((subitem) => (
-                  <button
-                    key={subitem}
-                    onClick={() => handleSubItemClick(subitem)}
-                    className={`w-full text-left p-2 pl-4 transition-colors text-sm rounded-r-lg
-                    ${
-                      isSubItemActive(subitem)
-                        ? "text-white bg-white/20 border-r-2 border-accent"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
-                    }`}
-                    suppressHydrationWarning={true}
-                  >
-                    {subitem}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+              {isOpen && expandedItems.includes(item.name) && (
+                <div className="ml-4 border-l-2 border-accent/30">
+                  {item.subitems?.map((subitem) => (
+                    <button
+                      key={subitem}
+                      onClick={() => handleSubItemClick(subitem)}
+                      className={`w-full text-left p-2 pl-4 transition-colors text-sm rounded-r-lg
+                        ${
+                          isSubItemActive(subitem)
+                            ? "text-white bg-white/20 border-r-2 border-accent"
+                            : "text-white/80 hover:text-white hover:bg-white/10"
+                        }`}
+                      suppressHydrationWarning={true}
+                    >
+                      {subitem}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
       </nav>
     </div>
   );

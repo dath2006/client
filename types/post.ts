@@ -8,6 +8,7 @@ export interface Comment {
   id: string;
   author: User;
   content: string;
+  body?: string;
   createdAt: Date;
   likes: number;
   replies: Comment[];
@@ -25,6 +26,10 @@ export interface PostContent {
   videoUrl?: string;
   videoFile?: File;
   videoThumbnail?: string;
+  posterImage?: File;
+  captionFiles?: File[];
+  sourceType?: "upload" | "url";
+  description?: string;
 
   // Audio post
   audioUrl?: string;
@@ -87,5 +92,5 @@ export interface Post {
   visibilityGroups?: string[];
   rightsHolder?: string;
   license?: string;
-  isOriginalWork?: boolean;
+  originalWork?: boolean;
 }

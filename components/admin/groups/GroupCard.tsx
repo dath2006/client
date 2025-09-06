@@ -3,6 +3,10 @@
 import React from "react";
 import { Edit2, Trash2, Users, Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import {
+  useGlobalPermissions,
+  useHasPermission,
+} from "@/hooks/useGlobalPermissions";
 
 interface GroupCardProps {
   group: {
@@ -98,29 +102,33 @@ const GroupCard = ({ group, onEdit, onDelete }: GroupCardProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onEdit(group.id)}
-            className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
-            title="Edit group"
-          >
-            <Edit2 size={18} />
-          </button>
-          <button
-            onClick={() => onDelete(group.id)}
-            className={`p-2 rounded-lg transition-all duration-300 ${
-              isSystemGroup(group.name)
-                ? "text-[#f7a5a5]/30 cursor-not-allowed"
-                : "text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10"
-            }`}
-            title={
-              isSystemGroup(group.name)
-                ? "Cannot delete system group"
-                : "Delete group"
-            }
-            disabled={isSystemGroup(group.name)}
-          >
-            <Trash2 size={18} />
-          </button>
+          {useHasPermission("edit_groups", false) && (
+            <button
+              onClick={() => onEdit(group.id)}
+              className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
+              title="Edit group"
+            >
+              <Edit2 size={18} />
+            </button>
+          )}
+          {useHasPermission("delete_groups", false) && (
+            <button
+              onClick={() => onDelete(group.id)}
+              className={`p-2 rounded-lg transition-all duration-300 ${
+                isSystemGroup(group.name)
+                  ? "text-[#f7a5a5]/30 cursor-not-allowed"
+                  : "text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10"
+              }`}
+              title={
+                isSystemGroup(group.name)
+                  ? "Cannot delete system group"
+                  : "Delete group"
+              }
+              disabled={isSystemGroup(group.name)}
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>

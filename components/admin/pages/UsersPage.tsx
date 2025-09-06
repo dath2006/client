@@ -5,6 +5,7 @@ import UserCard from "@/components/admin/users/UserCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import UserModal, { UserFormData } from "@/components/admin/users/UserModal";
 import { adminAPI, ApiError } from "@/lib/api";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 type UserRole = "admin" | "friend" | "banned" | "guest" | "member";
 interface User {
@@ -153,7 +154,12 @@ const UsersPage = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border pb-4">
-        <SearchHeader title="User" onSearch={handleSearch} onNew={handleNew} />
+        <SearchHeader
+          title="User"
+          onSearch={handleSearch}
+          onNew={handleNew}
+          hideNew={!useHasPermission("add_users", true)}
+        />
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
         {error && (

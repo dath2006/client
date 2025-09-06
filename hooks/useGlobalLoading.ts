@@ -2,52 +2,102 @@
 
 import { useCallback, useEffect } from "react";
 import { useGlobalSettings } from "./useGlobalSettings";
+import { useGlobalPermissions } from "./useGlobalPermissions";
 
 interface UseGlobalLoadingOptions {
   /** Auto-initialize settings on mount */
   autoInitialize?: boolean;
   /** Show loading for minimum duration (ms) to prevent flash */
   minLoadingDuration?: number;
+  /** Whether to also load permissions */
+  includePermissions?: boolean;
 }
 
 /**
  * Hook for managing global loading state during site initialization
  *
  * This hook is specifically designed to handle the initial loading
- * of site settings and provide a smooth loading experience.
+ * of site settings and user permissions, providing a smooth loading experience.
  */
 export function useGlobalLoading(options: UseGlobalLoadingOptions = {}) {
-  const { autoInitialize = true, minLoadingDuration = 500 } = options;
+  const {
+    autoInitialize = true,
+    minLoadingDuration = 500,
+    includePermissions = true,
+  } = options;
 
   const {
-    isInitialLoading,
-    appReady,
-    error,
+    isInitialLoading: settingsInitialLoading,
+    appReady: settingsReady,
+    error: settingsError,
     settings,
     refreshSettings,
-    loading,
+    loading: settingsLoading,
   } = useGlobalSettings();
 
-  // Initialize settings on mount if auto-initialize is enabled
+  const {
+    isInitialLoading: permissionsInitialLoading,
+    permissionsReady,
+    error: permissionsError,
+    permissions,
+    refreshPermissions,
+    loading: permissionsLoading,
+  } = useGlobalPermissions();
+
+  // Initialize settings and permissions on mount if auto-initialize is enabled
   useEffect(() => {
-    if (autoInitialize && !settings && !loading && !error) {
+    if (autoInitialize && !settings && !settingsLoading && !settingsError) {
       refreshSettings();
     }
-  }, [autoInitialize, settings, loading, error, refreshSettings]);
+    // Also initialize permissions if includePermissions is true
+    if (
+      autoInitialize &&
+      includePermissions &&
+      !permissions &&
+      !permissionsLoading &&
+      !permissionsError
+    ) {
+      refreshPermissions();
+    }
+  }, [
+    autoInitialize,
+    settings,
+    settingsLoading,
+    settingsError,
+    refreshSettings,
+    includePermissions,
+    permissions,
+    permissionsLoading,
+    permissionsError,
+    refreshPermissions,
+  ]);
 
-  // Force initialize settings (useful for manual initialization)
-  const initializeSettings = useCallback(() => {
+  // Force initialize both settings and permissions
+  const initializeAll = useCallback(() => {
     refreshSettings();
-  }, [refreshSettings]);
+    if (includePermissions) {
+      refreshPermissions();
+    }
+  }, [refreshSettings, refreshPermissions, includePermissions]);
 
   // Check if app is in loading state
-  const isGlobalLoading = isInitialLoading;
+  const isGlobalLoading = includePermissions
+    ? settingsInitialLoading || permissionsInitialLoading
+    : settingsInitialLoading;
 
   // Check if app failed to initialize
-  const hasInitializationError = !appReady && !!error && !loading;
+  const hasInitializationError = includePermissions
+    ? (!settingsReady && !!settingsError && !settingsLoading) ||
+      (!permissionsReady && !!permissionsError && !permissionsLoading)
+    : !settingsReady && !!settingsError && !settingsLoading;
 
   // Check if app is ready to use
-  const isAppReady = appReady && !!settings;
+  const isAppReady = includePermissions
+    ? settingsReady && !!settings && permissionsReady && !!permissions
+    : settingsReady && !!settings;
+
+  // Get current error (prioritize settings error, then permissions error)
+  const error = settingsError || (includePermissions ? permissionsError : null);
 
   // Get current loading phase
   const getLoadingPhase = useCallback(() => {
@@ -68,8 +118,8 @@ export function useGlobalLoading(options: UseGlobalLoadingOptions = {}) {
     error,
 
     // Actions
-    initializeSettings,
-    retryInitialization: initializeSettings,
+    initializeSettings: initializeAll,
+    retryInitialization: initializeAll,
 
     // Utilities
     canRenderApp: isAppReady,
@@ -95,7 +145,7 @@ export function useSettingsGuard() {
  */
 export function useSettingsLoader() {
   const { isGlobalLoading, hasInitializationError, error, initializeSettings } =
-    useGlobalLoading();
+    useGlobalLoading({ includePermissions: false }); // Only load settings, not permissions
 
   if (hasInitializationError) {
     throw new Error(`Failed to load site settings: ${error}`);
@@ -105,6 +155,34 @@ export function useSettingsLoader() {
     // Throw a promise to trigger Suspense
     throw new Promise((resolve) => {
       // This will resolve when settings are loaded
+      const checkLoading = () => {
+        if (!isGlobalLoading) {
+          resolve(true);
+        } else {
+          requestAnimationFrame(checkLoading);
+        }
+      };
+      checkLoading();
+    });
+  }
+}
+
+/**
+ * Hook that ensures both settings and permissions are loaded
+ * Throws a promise that can be caught by Suspense boundaries
+ */
+export function useAppLoader() {
+  const { isGlobalLoading, hasInitializationError, error } = useGlobalLoading({
+    includePermissions: true,
+  });
+
+  if (hasInitializationError) {
+    throw new Error(`Failed to load app data: ${error}`);
+  }
+
+  if (isGlobalLoading) {
+    // Throw a promise to trigger Suspense
+    throw new Promise((resolve) => {
       const checkLoading = () => {
         if (!isGlobalLoading) {
           resolve(true);

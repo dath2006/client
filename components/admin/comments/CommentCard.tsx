@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 interface Comment {
   id: number | string; // Handle both API (number) and UI (string) formats
@@ -285,14 +286,16 @@ const CommentCard = ({
                   Spam
                 </button>
 
-                <button
-                  onClick={() => onCommentDelete(commentId)}
-                  className="px-3 py-1 rounded text-xs bg-red-500/10 text-red-500/70 hover:text-red-500 hover:bg-red-500/20 transition-colors ml-2"
-                  suppressHydrationWarning={true}
-                >
-                  <Trash2 size={12} className="inline mr-1" />
-                  Delete
-                </button>
+                {useHasPermission("delete_comments", false) && (
+                  <button
+                    onClick={() => onCommentDelete(commentId)}
+                    className="px-3 py-1 rounded text-xs bg-red-500/10 text-red-500/70 hover:text-red-500 hover:bg-red-500/20 transition-colors ml-2"
+                    suppressHydrationWarning={true}
+                  >
+                    <Trash2 size={12} className="inline mr-1" />
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           );

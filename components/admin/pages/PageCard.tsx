@@ -1,8 +1,19 @@
 "use client";
 
 import React from "react";
-import { Edit2, Trash2, Eye, User, Calendar, Globe, List, Check, X } from "lucide-react";
+import {
+  Edit2,
+  Trash2,
+  Eye,
+  User,
+  Calendar,
+  Globe,
+  List,
+  Check,
+  X,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useGlobalPermissions } from "@/hooks/useGlobalPermissions";
 
 interface PageCardProps {
   page: {
@@ -23,6 +34,7 @@ interface PageCardProps {
 }
 
 const PageCard = ({ page, onEdit, onDelete }: PageCardProps) => {
+  const { canDeletePages, canEditPages } = useGlobalPermissions();
   const getStatusColor = (status: string) => {
     switch (status) {
       case "published":
@@ -54,20 +66,24 @@ const PageCard = ({ page, onEdit, onDelete }: PageCardProps) => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(page.id)}
-              className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
-              title="Edit page"
-            >
-              <Edit2 size={16} />
-            </button>
-            <button
-              onClick={() => onDelete(page.id)}
-              className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
-              title="Delete page"
-            >
-              <Trash2 size={16} />
-            </button>
+            {canEditPages && (
+              <button
+                onClick={() => onEdit(page.id)}
+                className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
+                title="Edit page"
+              >
+                <Edit2 size={16} />
+              </button>
+            )}
+            {canDeletePages && (
+              <button
+                onClick={() => onDelete(page.id)}
+                className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+                title="Delete page"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -109,7 +125,9 @@ const PageCard = ({ page, onEdit, onDelete }: PageCardProps) => {
               <User size={12} />
               <span>Author</span>
             </div>
-            <span className="text-sm text-[#f7a5a5]/90">{page.author.name}</span>
+            <span className="text-sm text-[#f7a5a5]/90">
+              {page.author.name}
+            </span>
             <div className="flex items-center gap-1 text-xs text-[#f7a5a5]/60">
               <Eye size={10} />
               <span>{page.views.toLocaleString()} views</span>

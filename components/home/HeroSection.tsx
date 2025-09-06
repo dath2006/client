@@ -1,14 +1,16 @@
 "use client";
 
+import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 import { PenTool, Sparkles } from "lucide-react";
 
 const HeroSection = () => {
+  const { siteName } = useGlobalSettings();
   return (
     <div className="pt-32 pb-16 text-center max-w-4xl mx-auto">
       <div className="flex items-center justify-center gap-3 mb-6">
         <PenTool size={32} className="text-primary" />
         <h1 className="text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Chyrp Lite
+          {siteName || "Chyrp Reimagine"}
         </h1>
         <Sparkles size={32} className="text-secondary" />
       </div>
@@ -18,14 +20,14 @@ const HeroSection = () => {
       </p>
       <div className="flex items-center justify-center gap-4">
         <a
-          href="/admin"
+          href="/admin/posts"
           className="btn-primary px-8 py-3 text-lg font-medium rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
         >
           <PenTool size={20} />
           Start Writing
         </a>
         <a
-          href="#posts"
+          href="/feed"
           className="btn-outline px-8 py-3 text-lg font-medium rounded-full transition-all duration-300"
         >
           Explore Posts

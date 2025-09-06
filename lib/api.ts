@@ -21,6 +21,12 @@ export {
   isDevelopment,
 } from "./api-legacy";
 
+// Export user profile API
+export { userProfileAPI } from "./api-legacy/user-profile";
+
+// Export user comments API
+export { userCommentsAPI } from "./api-legacy/user-comments";
+
 // Export types
 export type {
   FeedParams,
@@ -42,6 +48,21 @@ export type {
   CreateCategoryData,
   UpdateCategoryData,
 } from "./api-legacy";
+
+// Export user profile types
+export type {
+  UserProfile,
+  UpdateProfileData,
+  ChangePasswordData,
+  ApiResponse,
+} from "./api-legacy/user-profile";
+
+// Export user comments types
+export type {
+  UserComment,
+  UpdateCommentData,
+  CreateCommentData,
+} from "./api-legacy/user-comments";
 
 // Export comment and spam types
 export type {

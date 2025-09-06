@@ -149,7 +149,7 @@ const ModulesPage = () => {
           </div>
         </div>
 
-        {module.conflicts &&
+        {/* {module.conflicts &&
           Array.isArray(module.conflicts) &&
           module.conflicts.length > 0 && (
             <div className="mb-3 p-3 bg-warning/5 border border-warning/20 rounded-lg">
@@ -179,7 +179,7 @@ const ModulesPage = () => {
               {module.status === "enabled" ? "Disable" : "Enable"}
             </button>
           )}
-        </div>
+        </div> */}
       </div>
     );
   };

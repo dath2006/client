@@ -1,106 +1,91 @@
 "use client";
 
-import PostCard from "./PostCard";
-
-// Mock data for different post types
-const mockPosts = [
-  {
-    id: 1,
-    title: "Welcome to the Future of Blogging",
-    content:
-      "Chyrp Lite Reimagine brings a fresh perspective to content management. With its modern interface and powerful features, creating and managing content has never been easier.",
-    type: "text" as const,
-    author: "Admin",
-    date: "2024-01-15",
-    tags: ["blogging", "cms", "web"],
-    likes: 24,
-    comments: 8,
-  },
-  {
-    id: 2,
-    title: "Beautiful Mountain Landscape",
-    content:
-      "Captured this stunning view during my hiking trip last weekend. Nature never fails to amaze me.",
-    type: "photo" as const,
-    author: "John Doe",
-    date: "2024-01-14",
-    tags: ["photography", "nature", "mountains"],
-    likes: 45,
-    comments: 12,
-    imageUrl:
-      "https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D",
-  },
-  {
-    id: 3,
-    title: "Words of Wisdom",
-    content: "The only way to do great work is to love what you do.",
-    type: "quote" as const,
-    author: "Steve Jobs",
-    date: "2024-01-13",
-    tags: ["quotes", "inspiration", "motivation"],
-    likes: 67,
-    comments: 15,
-  },
-  {
-    id: 4,
-    title: "Amazing Web Development Resource",
-    content:
-      "Found this incredible tutorial series that covers everything from basics to advanced concepts. Highly recommended for anyone learning web development!",
-    type: "link" as const,
-    author: "Jane Smith",
-    date: "2024-01-12",
-    tags: ["webdev", "tutorial", "learning"],
-    likes: 32,
-    comments: 6,
-    linkUrl: "https://example.com/tutorial",
-  },
-  {
-    id: 5,
-    title: "My Latest Music Video",
-    content:
-      "Just finished editing my latest music video. Can't wait to share it with everyone!",
-    type: "video" as const,
-    author: "Music Artist",
-    date: "2024-01-11",
-    tags: ["music", "video", "creative"],
-    likes: 89,
-    comments: 23,
-    videoUrl: "https://www.youtube.com/watch?v=FtBzf8VgSUU",
-  },
-  {
-    id: 6,
-    title: "New Podcast Episode",
-    content:
-      "In this episode, we discuss the future of artificial intelligence and its impact on society.",
-    type: "audio" as const,
-    author: "Podcast Host",
-    date: "2024-01-10",
-    tags: ["podcast", "ai", "technology"],
-    likes: 56,
-    comments: 18,
-    audioUrl: "https://example.com/audio",
-  },
-  {
-    id: 7,
-    title: "Research Paper on Climate Change",
-    content:
-      "Sharing my latest research findings on climate change patterns and their long-term implications.",
-    type: "file" as const,
-    author: "Dr. Research",
-    date: "2024-01-09",
-    tags: ["research", "climate", "science"],
-    likes: 78,
-    comments: 34,
-    fileUrl: "https://example.com/research.pdf",
-  },
-];
+import { useState, useEffect } from "react";
+import { Post } from "@/types/post";
+import { feedAPI } from "@/lib/api";
+import PostCard from "../feed/PostCard";
+import { useRouter } from "next/navigation";
 
 const PostGrid = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchPinnedPosts = async () => {
+      try {
+        setLoading(true);
+        const pinnedPosts = await feedAPI.getPinnedPosts();
+        setPosts(pinnedPosts);
+      } catch (err) {
+        console.error("Error fetching pinned posts:", err);
+        setError("Failed to load pinned posts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPinnedPosts();
+  }, []);
+
+  if (loading) {
+    return (
+      <section id="posts" className="mb-16">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-text-primary mb-4">
+            Pinned Posts
+          </h2>
+          <p className="text-lg text-text-secondary max-w-2xl mx-auto">
+            Loading pinned posts...
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          {/* Loading skeleton */}
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-card border border-border rounded-lg p-6 animate-pulse"
+            >
+              <div className="flex items-start space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gray-300 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
+                  <div className="h-3 bg-gray-300 rounded w-1/6"></div>
+                </div>
+              </div>
+              <div className="h-6 bg-gray-300 rounded w-3/4 mb-4"></div>
+              <div className="h-32 bg-gray-300 rounded mb-4"></div>
+              <div className="flex space-x-4">
+                <div className="h-4 bg-gray-300 rounded w-12"></div>
+                <div className="h-4 bg-gray-300 rounded w-12"></div>
+                <div className="h-4 bg-gray-300 rounded w-12"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="posts" className="mb-16">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-text-primary mb-4">
+            Pinned Posts
+          </h2>
+          <p className="text-lg text-error max-w-2xl mx-auto">{error}</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="posts" className="mb-16">
       <div className="text-center mb-12">
         <h2 className="text-4xl font-bold text-text-primary mb-4">
-          Latest Posts
+          Pinned Posts
         </h2>
         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
           Discover a diverse collection of content from our community. From
@@ -108,17 +93,30 @@ const PostGrid = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        {mockPosts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+      {posts.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-lg text-text-secondary">
+            No pinned posts available.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </div>
+      )}
 
-      <div className="text-center mt-12">
-        <button className="btn-primary px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
-          Load More Posts
-        </button>
-      </div>
+      {posts.length > 0 && (
+        <div className="text-center mt-12">
+          <button
+            className="btn-primary px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+            onClick={() => router.push("/feed")}
+          >
+            Load More Posts
+          </button>
+        </div>
+      )}
     </section>
   );
 };

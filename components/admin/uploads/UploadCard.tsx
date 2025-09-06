@@ -13,6 +13,7 @@ import {
   File,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useGlobalPermissions } from "@/hooks/useGlobalPermissions";
 
 interface UploadCardProps {
   upload: {
@@ -40,6 +41,7 @@ const UploadCard = ({
   onView,
   onDownload,
 }: UploadCardProps) => {
+  const { canDeleteUploads } = useGlobalPermissions();
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -139,27 +141,29 @@ const UploadCard = ({
           >
             <Eye size={16} />
           </button>
-          <button
+          {/* <button
             onClick={() => onDownload(upload.id)}
             className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
             title="Download file"
           >
             <Download size={16} />
-          </button>
-          <button
+          </button> */}
+          {/* <button
             onClick={() => onEdit(upload.id)}
             className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
             title="Edit file details"
           >
             <Edit2 size={16} />
-          </button>
-          <button
-            onClick={() => onDelete(upload.id)}
-            className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
-            title="Delete file"
-          >
-            <Trash2 size={16} />
-          </button>
+          </button> */}
+          {canDeleteUploads && (
+            <button
+              onClick={() => onDelete(upload.id)}
+              className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+              title="Delete file"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import GroupModal, {
   GroupFormData,
 } from "@/components/admin/groups/GroupModal";
 import { adminAPI, ApiError } from "@/lib/api";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 interface Group {
   id: string;
@@ -155,7 +156,12 @@ const GroupsPage = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border pb-4">
-        <SearchHeader title="Group" onSearch={handleSearch} onNew={handleNew} />
+        <SearchHeader
+          title="Group"
+          onSearch={handleSearch}
+          onNew={handleNew}
+          hideNew={!useHasPermission("add_groups", true)}
+        />
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
         {error && (

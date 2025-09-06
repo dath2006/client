@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import { useSession } from "next-auth/react";
 import PostHeader from "./PostHeader";
 import PostContent from "./PostContent";
 import PostInteractions from "./PostInteractions";
@@ -11,6 +12,8 @@ import CommentsSection from "./CommentsSection";
 import ShareModal from "./ShareModal";
 import { Post, Comment } from "@/types/post";
 import { feedAPI, ApiError } from "@/lib/api";
+import { useGlobalSettings } from "@/hooks/useGlobalSettings";
+import { is } from "date-fns/locale";
 
 // --- Animation Variants ---
 
@@ -82,6 +85,7 @@ interface PostViewProps {
 }
 
 const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
+  const { data: session } = useSession();
   const [currentPost, setCurrentPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +95,17 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   });
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  // New state for API interactions
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
+  const [isLikeLoading, setIsLikeLoading] = useState(false);
+  const [hasRecordedView, setHasRecordedView] = useState(false);
+
+  const { isModuleEnabled } = useGlobalSettings();
+  const commentsEnabled = isModuleEnabled("comments");
+  const likeEnabled = isModuleEnabled("likes");
 
   // Ref for the comments section to enable scrolling
   const commentsSectionRef = useRef<HTMLDivElement>(null);
@@ -102,6 +117,10 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
         setError(null);
         const post = await feedAPI.getPost(postId);
         setCurrentPost(post);
+
+        // Initialize local state with post data
+        setLikeCount(post.likes);
+        setViewCount(post.viewCount);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(
@@ -119,6 +138,55 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
     if (postId) fetchPost();
   }, [postId]);
 
+  // Check like status when post loads
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (session?.user?.id && currentPost) {
+        try {
+          const status = await feedAPI.checkLikeStatus(
+            currentPost.id,
+            session.user.id
+          );
+          setIsLiked(status.liked);
+          setUserInteractions((prev) => ({ ...prev, liked: status.liked }));
+        } catch (error) {
+          console.error("Error checking like status:", error);
+        }
+      }
+    };
+
+    if (currentPost) {
+      checkLikeStatus();
+    }
+  }, [currentPost, session?.user?.id]);
+
+  // Record view when component mounts
+  useEffect(() => {
+    const recordView = async () => {
+      if (currentPost && !hasRecordedView) {
+        try {
+          const result = await feedAPI.recordView(
+            currentPost.id,
+            session?.user?.id
+          );
+          setViewCount(result.viewCount);
+          setHasRecordedView(true);
+
+          // Update the post object as well
+          setCurrentPost((prev) =>
+            prev ? { ...prev, viewCount: result.viewCount } : null
+          );
+        } catch (error) {
+          console.error("Error recording view:", error);
+        }
+      }
+    };
+
+    if (currentPost && !hasRecordedView) {
+      recordView();
+    }
+  }, [currentPost, session?.user?.id, hasRecordedView]);
+
   const showNotification = (message: string) => {
     setNotification(message);
     setTimeout(() => setNotification(null), 3000);
@@ -132,15 +200,78 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
     });
   };
 
-  const handleLike = () => {
-    if (!currentPost) return;
-    const newLikedState = !userInteractions.liked;
-    setUserInteractions((prev) => ({ ...prev, liked: newLikedState }));
-    setCurrentPost((prev) =>
-      prev
-        ? { ...prev, likes: newLikedState ? prev.likes + 1 : prev.likes - 1 }
-        : null
-    );
+  const handleLike = async () => {
+    if (!session?.user?.id) {
+      showNotification("Please sign in to like posts");
+      return;
+    }
+
+    if (!currentPost) {
+      showNotification("Post not available");
+      return;
+    }
+
+    if (isLikeLoading) return;
+
+    try {
+      setIsLikeLoading(true);
+
+      // Optimistic update
+      const wasLiked = isLiked;
+      const newLikeCount = wasLiked ? likeCount - 1 : likeCount + 1;
+
+      setIsLiked(!wasLiked);
+      setLikeCount(newLikeCount);
+      setUserInteractions((prev) => ({ ...prev, liked: !wasLiked }));
+
+      // Update current post object
+      setCurrentPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              likes: newLikeCount,
+              isLiked: !wasLiked,
+            }
+          : null
+      );
+
+      // Make API call
+      await feedAPI.toggleLike(currentPost.id, session.user.id);
+
+      if (!wasLiked) {
+        showNotification("Added to likes!");
+      } else {
+        showNotification("Removed from likes");
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+
+      // Revert optimistic update on error
+      const revertLiked = !isLiked;
+      const revertCount = revertLiked ? likeCount + 1 : likeCount - 1;
+
+      setIsLiked(revertLiked);
+      setLikeCount(revertCount);
+      setUserInteractions((prev) => ({ ...prev, liked: revertLiked }));
+
+      setCurrentPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              likes: revertCount,
+              isLiked: revertLiked,
+            }
+          : null
+      );
+
+      if (error instanceof ApiError) {
+        showNotification(error.message || "Failed to update like");
+      } else {
+        showNotification("Failed to update like. Please try again.");
+      }
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   const handleSave = () => {
@@ -152,23 +283,79 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
   const handleShare = () => setIsShareModalOpen(true);
   const handleTagClick = (tag: string) => console.log("Navigate to tag:", tag);
 
-  const handleCommentSubmit = (content: string) => {
+  const handleCommentSubmit = async (content: string) => {
     if (!currentPost) return;
-    const newComment: Comment = {
-      id: `c${Date.now()}`,
-      author: {
-        name: "Current User",
-        avatar: "/api/placeholder/40/40",
-        id: "current-user",
-      },
-      content,
-      createdAt: new Date(),
-      likes: 0,
-      replies: [],
-    };
-    setCurrentPost((prev) =>
-      prev ? { ...prev, comments: [newComment, ...prev.comments] } : null
-    );
+
+    try {
+      // Get userId from session
+      const userId = session?.user?.id;
+
+      // Call the API to submit the comment
+      const newComment = await feedAPI.submitComment(
+        currentPost.id,
+        content,
+        userId
+      );
+
+      // Add the new comment to the current post
+      setCurrentPost((prev) =>
+        prev ? { ...prev, comments: [newComment, ...prev.comments] } : null
+      );
+
+      // Show success notification
+      showNotification("Comment submitted successfully!");
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+
+      // Show error notification
+      if (error instanceof ApiError) {
+        showNotification(`Error: ${error.message}`);
+      } else {
+        showNotification("Failed to submit comment. Please try again.");
+      }
+    }
+  };
+
+  const handleCommentUpdate = async (commentId: string, content: string) => {
+    if (!currentPost) return;
+
+    try {
+      // Update the comment in the local state
+      setCurrentPost((prev) => {
+        if (!prev) return null;
+        const updatedComments = prev.comments.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, content, body: content }
+            : comment
+        );
+        return { ...prev, comments: updatedComments };
+      });
+
+      showNotification("Comment updated successfully!");
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      showNotification("Failed to update comment. Please try again.");
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    if (!currentPost) return;
+
+    try {
+      // Remove the comment from the local state
+      setCurrentPost((prev) => {
+        if (!prev) return null;
+        const updatedComments = prev.comments.filter(
+          (comment) => comment.id !== commentId
+        );
+        return { ...prev, comments: updatedComments };
+      });
+
+      showNotification("Comment deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      showNotification("Failed to delete comment. Please try again.");
+    }
   };
 
   if (loading) {
@@ -310,22 +497,31 @@ const PostView: React.FC<PostViewProps> = ({ postId = "1", onBack }) => {
           </motion.div>
           <motion.div variants={staggerItem}>
             <PostInteractions
-              post={currentPost}
-              userLiked={userInteractions.liked}
+              post={{
+                ...currentPost,
+                likes: likeCount,
+                viewCount: viewCount,
+              }}
+              userLiked={isLiked}
               userSaved={userInteractions.saved}
               onLike={handleLike}
               onShare={handleShare}
               onSave={handleSave}
               onCommentClick={handleScrollToComments}
+              isLikeLoading={isLikeLoading}
             />
           </motion.div>
-          <motion.div variants={staggerItem} ref={commentsSectionRef}>
-            <CommentsSection
-              comments={currentPost.comments}
-              onCommentSubmit={handleCommentSubmit}
-              commentVariants={commentVariants}
-            />
-          </motion.div>
+          {commentsEnabled && (
+            <motion.div variants={staggerItem} ref={commentsSectionRef}>
+              <CommentsSection
+                comments={currentPost.comments}
+                onCommentSubmit={handleCommentSubmit}
+                onCommentUpdate={handleCommentUpdate}
+                onCommentDelete={handleCommentDelete}
+                commentVariants={commentVariants}
+              />
+            </motion.div>
+          )}
         </motion.article>
       </div>
     </motion.div>

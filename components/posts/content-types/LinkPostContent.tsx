@@ -3,6 +3,7 @@
 import React from "react";
 import { PostContent } from "@/types/post";
 import { ExternalLink, Globe } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface LinkPostContentProps {
   content: PostContent;
@@ -53,9 +54,12 @@ const LinkPostContent: React.FC<LinkPostContentProps> = ({ content }) => {
 
             {/* Description */}
             {content.linkDescription && (
-              <p className="text-text-secondary leading-relaxed">
-                {content.linkDescription}
-              </p>
+              <div>
+                <MarkdownContent
+                  content={content.linkDescription}
+                  className="text-text-secondary leading-relaxed"
+                />
+              </div>
             )}
 
             {/* URL and Domain */}
@@ -104,6 +108,16 @@ const LinkPostContent: React.FC<LinkPostContentProps> = ({ content }) => {
             </a>
           </div>
         )}
+
+      {/* Additional Content */}
+      {content.body && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <MarkdownContent
+            content={content.body}
+            className="text-text-primary leading-relaxed"
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -16,6 +16,10 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { Post } from "@/types/post";
 import { adminAPI, ApiError } from "@/lib/api";
+import {
+  useGlobalPermissions,
+  useHasPermission,
+} from "@/hooks/useGlobalPermissions";
 
 interface PostCardProps {
   post: Post;
@@ -34,6 +38,7 @@ const PostCard = ({
 }: PostCardProps) => {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { canDeletePosts, canEditPosts } = useGlobalPermissions();
 
   const handleDelete = async () => {
     // If onDelete callback is provided, use that (for backwards compatibility)
@@ -180,25 +185,29 @@ const PostCard = ({
 
           {/* Controls */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => onEdit(post.id)}
-              className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-300"
-              title="Edit post"
-            >
-              <Edit2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting || isDeleteLoading}
-              className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Delete post"
-            >
-              {isDeleting || isDeleteLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-            </button>
+            {canEditPosts && (
+              <button
+                onClick={() => onEdit(post.id)}
+                className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all duration-300"
+                title="Edit post"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+            )}
+            {canDeletePosts && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting || isDeleteLoading}
+                className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete post"
+              >
+                {isDeleting || isDeleteLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

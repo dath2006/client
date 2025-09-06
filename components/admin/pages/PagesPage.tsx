@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import PageCard from "@/components/admin/pages/PageCard";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import PageModal, { PageFormData } from "@/components/admin/pages/PageModal";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 interface Page {
   id: string;
@@ -195,7 +196,12 @@ const PagesPage = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border pb-4">
-        <SearchHeader title="Page" onSearch={handleSearch} onNew={handleNew} />
+        <SearchHeader
+          title="Page"
+          onSearch={handleSearch}
+          onNew={handleNew}
+          hideNew={!useHasPermission("add_pages", true)}
+        />
       </div>
       <div className="flex-1 overflow-y-auto pt-4">
         <div className="grid gap-4">

@@ -48,6 +48,23 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => {
               day: "numeric",
             })}
           </p>
+
+          {/* Rights and License Information */}
+          <div className="flex flex-wrap gap-2 mt-2 text-xs">
+            {post.rightsHolder && (
+              <span className="text-text-tertiary">© {post.rightsHolder}</span>
+            )}
+            {post.license && (
+              <span className="px-2 py-1 bg-surface text-text-secondary rounded">
+                {post.license}
+              </span>
+            )}
+            {post.originalWork && (
+              <span className="px-2 py-1 bg-accent/20 text-accent rounded font-medium">
+                Original Work
+              </span>
+            )}
+          </div>
         </motion.div>
       </div>
 

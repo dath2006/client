@@ -3,6 +3,7 @@
 import React from "react";
 import { PostContent } from "@/types/post";
 import { Quote } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface QuotePostContentProps {
   content: PostContent;
@@ -24,13 +25,13 @@ const QuotePostContent: React.FC<QuotePostContentProps> = ({ content }) => {
 
         {/* Quote Text */}
         <blockquote className="text-xl md:text-2xl font-medium text-text-primary leading-relaxed mb-6">
-          "{content.quote}"
+          "<MarkdownContent content={content.quote} className="inline" />"
         </blockquote>
 
         {/* Source */}
         {content.source && (
           <cite className="text-text-secondary text-sm font-medium not-italic">
-            — {content.source}
+            — <MarkdownContent content={content.source} className="inline" />
           </cite>
         )}
       </div>

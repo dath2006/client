@@ -10,7 +10,7 @@ export default function Home() {
     <main className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-4">
         <HeroSection />
-        <SearchSection />
+
         <PostGrid />
       </div>
       <Footer />

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { PostContent } from "@/types/post";
 import { Play, Pause, Volume2, Download } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface AudioPostContentProps {
   content: PostContent;
@@ -108,9 +109,12 @@ const AudioPostContent: React.FC<AudioPostContentProps> = ({ content }) => {
         </div>
 
         {/* Audio Info */}
-        {content.audioDescription && (
-          <div className="text-text-secondary text-sm leading-relaxed">
-            {content.audioDescription}
+        {(content.audioDescription || content.body) && (
+          <div>
+            <MarkdownContent
+              content={content.audioDescription || content.body || ""}
+              className="text-text-secondary text-sm leading-relaxed"
+            />
           </div>
         )}
       </div>

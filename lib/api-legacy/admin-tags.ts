@@ -2,6 +2,25 @@ import apiClient, { ApiError, isAdminUser } from "./client";
 
 export const adminTagsAPI = {
   /**
+   * Get popular tags (public endpoint)
+   */
+  async getPopularTags(
+    limit: number = 10
+  ): Promise<{ id: number; name: string; count: number; slug: string }[]> {
+    try {
+      const response = await apiClient.get("/api/v1/tags/popular", {
+        params: { limit },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new ApiError(
+        error.response?.data?.detail || "Failed to fetch popular tags",
+        error.response?.status
+      );
+    }
+  },
+
+  /**
    * Get tags for admin panel
    */
   async getTags(params: any = {}): Promise<{ data: any[] }> {

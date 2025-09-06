@@ -3,6 +3,7 @@
 import React from "react";
 import { PostContent } from "@/types/post";
 import { Download, File, FileText, Image, Music, Video } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface FilePostContentProps {
   content: PostContent;
@@ -95,6 +96,16 @@ const FilePostContent: React.FC<FilePostContentProps> = ({ content }) => {
             <Download size={16} />
             <span>Download All ({content.files.length} files)</span>
           </button>
+        </div>
+      )}
+
+      {/* Additional Content */}
+      {content.body && (
+        <div className="mt-6 bg-card border border-border rounded-lg p-4">
+          <MarkdownContent
+            content={content.body}
+            className="text-text-primary leading-relaxed"
+          />
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@
 import React from "react";
 import { Edit2, Trash2, Eye, Mail, Calendar, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useGlobalPermissions } from "@/hooks/useGlobalPermissions";
 
 interface UserCardProps {
   user: {
@@ -24,6 +25,7 @@ interface UserCardProps {
 }
 
 const UserCard = ({ user, onEdit, onDelete, onViewData }: UserCardProps) => {
+  const { canDeleteUsers, canEditUsers } = useGlobalPermissions();
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
@@ -93,27 +95,31 @@ const UserCard = ({ user, onEdit, onDelete, onViewData }: UserCardProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          {/* <button
             onClick={() => onViewData(user.id)}
             className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
             title="View user data"
           >
             <Eye size={18} />
-          </button>
-          <button
-            onClick={() => onEdit(user.id)}
-            className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
-            title="Edit user"
-          >
-            <Edit2 size={18} />
-          </button>
-          <button
-            onClick={() => onDelete(user.id)}
-            className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
-            title="Delete user"
-          >
-            <Trash2 size={18} />
-          </button>
+          </button> */}
+          {canEditUsers && (
+            <button
+              onClick={() => onEdit(user.id)}
+              className="p-2 text-[#f7a5a5]/70 hover:text-[#f7a5a5] hover:bg-[#f7a5a5]/10 rounded-lg transition-all duration-300"
+              title="Edit user"
+            >
+              <Edit2 size={18} />
+            </button>
+          )}
+          {canDeleteUsers && (
+            <button
+              onClick={() => onDelete(user.id)}
+              className="p-2 text-[#f7a5a5]/70 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all duration-300"
+              title="Delete user"
+            >
+              <Trash2 size={18} />
+            </button>
+          )}
         </div>
       </div>
     </div>

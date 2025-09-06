@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import Toggle from "@/components/common/Toggle";
 import { Post, PostType } from "@/types/post";
+import { adminCategoriesAPI, adminTagsAPI, ApiError } from "@/lib/api";
+import { Category } from "@/lib/api-legacy/types";
 
 // Import post type components
 import TextPost from "./types/TextPost";
@@ -32,6 +34,7 @@ import PhotoPost from "./types/PhotoPost";
 import FilePost from "./types/FilePost";
 import QuotePost from "./types/QuotePost";
 import LinkPost from "./types/LinkPost";
+import { useGlobalSettings } from "@/hooks/useGlobalSettings";
 
 interface PostModalProps {
   isOpen: boolean;
@@ -54,7 +57,7 @@ export interface PostFormData {
   tags: string[];
   category: string;
   commentStatus: "open" | "closed" | "private";
-  isOriginalWork: boolean;
+  originalWork: boolean;
   rightsHolder: string;
   license: string;
 }
@@ -156,11 +159,39 @@ const PostModal: React.FC<PostModalProps> = ({
   mode,
   isLoading = false,
 }) => {
+  const { getSetting, getEnabledFeathers } = useGlobalSettings();
+  const enabledFeathers = getEnabledFeathers();
+
+  // Debug logging
+  console.log("Enabled feathers:", enabledFeathers);
+
+  // Filter POST_TYPES based on enabled feathers
+  const availablePostTypes = POST_TYPES.filter((postType) => {
+    // Text posts are always available as they're the base content type
+    if (postType.type === "text") return true;
+
+    // Check if the corresponding feather is enabled
+    const isEnabled = enabledFeathers.some(
+      (feather) => feather.name.toLowerCase() === postType.type.toLowerCase()
+    );
+
+    console.log(
+      `Post type ${postType.type}:`,
+      isEnabled ? "enabled" : "disabled"
+    );
+    return isEnabled;
+  });
+
+  console.log(
+    "Available post types:",
+    availablePostTypes.map((pt) => pt.type)
+  );
+
   const [formData, setFormData] = useState<PostFormData>({
     title: "",
     type: "text",
     content: {},
-    visibility: "public",
+    visibility: getSetting("defaultPostStatus", "public"),
     visibilityGroups: [],
     isPinned: false,
     slug: "",
@@ -168,7 +199,7 @@ const PostModal: React.FC<PostModalProps> = ({
     tags: [],
     category: "",
     commentStatus: "open",
-    isOriginalWork: true,
+    originalWork: true,
     rightsHolder: "",
     license: "All Rights Reserved",
   });
@@ -176,13 +207,30 @@ const PostModal: React.FC<PostModalProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [errors, setErrors] = useState<any>({});
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [popularTags, setPopularTags] = useState<
+    { id: number; name: string; count: number; slug: string }[]
+  >([]);
+  const [popularTagsLoading, setPopularTagsLoading] = useState(false);
 
   useEffect(() => {
     if (mode === "edit" && post) {
+      let content = post.content || {};
+
+      // Initialize content structure based on post type
+      if (post.type === "video" && !content.sourceType) {
+        content = {
+          ...content,
+          sourceType: content.videoUrl ? "url" : "upload",
+        };
+      }
+
       setFormData({
         title: post.title,
         type: post.type,
-        content: post.content || {},
+        content,
         visibility: post.status === "published" ? "public" : post.status,
         visibilityGroups: post.visibilityGroups || [],
         isPinned: post.isPinned || false,
@@ -193,7 +241,7 @@ const PostModal: React.FC<PostModalProps> = ({
         tags: post.tags,
         category: post.category || "",
         commentStatus: post.allowComments === false ? "closed" : "open",
-        isOriginalWork: post.isOriginalWork || true,
+        originalWork: post.originalWork || true,
         rightsHolder: post.rightsHolder || "",
         license: post.license || "All Rights Reserved",
       });
@@ -202,7 +250,7 @@ const PostModal: React.FC<PostModalProps> = ({
         title: "",
         type: "text",
         content: {},
-        visibility: "public",
+        visibility: getSetting("defaultPostStatus", "public"),
         visibilityGroups: [],
         isPinned: false,
         slug: "",
@@ -210,13 +258,54 @@ const PostModal: React.FC<PostModalProps> = ({
         tags: [],
         category: "",
         commentStatus: "open",
-        isOriginalWork: true,
+        originalWork: true,
         rightsHolder: "",
         license: "All Rights Reserved",
       });
     }
     setErrors({});
   }, [mode, post, isOpen]);
+
+  // Fetch categories when component mounts
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError(null);
+        const fetchedCategories = await adminCategoriesAPI.getAllCategories();
+        setCategories(fetchedCategories);
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+        setCategoriesError(
+          error instanceof ApiError
+            ? error.message
+            : "Failed to load categories"
+        );
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Fetch popular tags when component mounts
+  useEffect(() => {
+    const fetchPopularTags = async () => {
+      try {
+        setPopularTagsLoading(true);
+        const fetchedTags = await adminTagsAPI.getPopularTags(4); // Get 4 popular tags
+        setPopularTags(fetchedTags);
+      } catch (error) {
+        console.error("Failed to fetch popular tags:", error);
+        // Don't show error for popular tags as it's not critical
+      } finally {
+        setPopularTagsLoading(false);
+      }
+    };
+
+    fetchPopularTags();
+  }, []);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -231,8 +320,53 @@ const PostModal: React.FC<PostModalProps> = ({
     }
   }, [formData.title, mode]);
 
+  // Ensure selected post type is available in create mode
+  useEffect(() => {
+    if (mode === "create" && availablePostTypes.length > 0) {
+      const isCurrentTypeAvailable = availablePostTypes.some(
+        (postType) => postType.type === formData.type
+      );
+
+      if (!isCurrentTypeAvailable) {
+        // Default to the first available post type (which should be 'text')
+        setFormData((prev) => ({
+          ...prev,
+          type: availablePostTypes[0].type,
+          content: {}, // Reset content when changing type
+        }));
+      }
+    }
+  }, [availablePostTypes, formData.type, mode]);
+
   const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    console.log(value);
+
+    setFormData((prev) => {
+      let newFormData = { ...prev, [field]: value };
+
+      // Initialize content structure when post type changes
+      if (field === "type") {
+        switch (value) {
+          case "video":
+            newFormData.content = {
+              ...prev.content,
+              sourceType: "upload", // Default to upload
+            };
+            break;
+          case "audio":
+            newFormData.content = { ...prev.content };
+            break;
+          case "photo":
+            newFormData.content = { ...prev.content };
+            break;
+          default:
+            newFormData.content = { ...prev.content };
+        }
+      }
+
+      return newFormData;
+    });
+
     if (errors[field]) {
       setErrors((prev: any) => ({ ...prev, [field]: undefined }));
     }
@@ -249,6 +383,12 @@ const PostModal: React.FC<PostModalProps> = ({
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
       handleInputChange("tags", [...formData.tags, newTag.trim()]);
       setNewTag("");
+    }
+  };
+
+  const handleAddPopularTag = (tagName: string) => {
+    if (!formData.tags.includes(tagName)) {
+      handleInputChange("tags", [...formData.tags, tagName]);
     }
   };
 
@@ -279,8 +419,14 @@ const PostModal: React.FC<PostModalProps> = ({
         }
         break;
       case "video":
-        if (!formData.content.videoFile && !formData.content.videoUrl) {
-          newErrors.videoFile = "Video file or URL is required";
+        if (formData.content.sourceType === "url") {
+          if (!formData.content.videoUrl?.trim()) {
+            newErrors.videoUrl = "Video URL is required";
+          }
+        } else {
+          if (!formData.content.videoFile) {
+            newErrors.videoFile = "Video file is required";
+          }
         }
         break;
       case "photo":
@@ -387,32 +533,39 @@ const PostModal: React.FC<PostModalProps> = ({
                 <h3 className="text-sm font-medium text-[#f7a5a5] mb-3">
                   Post Type
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
-                  {POST_TYPES.map(
-                    ({ type, icon: Icon, label, description }) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => handleInputChange("type", type)}
-                        className={`p-2 lg:p-3 rounded-lg text-left transition-all ${
-                          formData.type === type
-                            ? "bg-[#f7a5a5]/20 border border-[#f7a5a5]/50 text-[#f7a5a5]"
-                            : "bg-white/5 border border-transparent text-white/70 hover:bg-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Icon size={16} />
-                          <span className="font-medium text-sm lg:text-base">
-                            {label}
-                          </span>
-                        </div>
-                        <p className="text-xs text-white/60 hidden lg:block">
-                          {description}
-                        </p>
-                      </button>
-                    )
-                  )}
-                </div>
+                {availablePostTypes.length === 0 ? (
+                  <div className="p-3 text-center text-white/60 text-sm">
+                    No post types are currently enabled. Please enable feathers
+                    in the admin settings.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
+                    {availablePostTypes.map(
+                      ({ type, icon: Icon, label, description }) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => handleInputChange("type", type)}
+                          className={`p-2 lg:p-3 rounded-lg text-left transition-all ${
+                            formData.type === type
+                              ? "bg-[#f7a5a5]/20 border border-[#f7a5a5]/50 text-[#f7a5a5]"
+                              : "bg-white/5 border border-transparent text-white/70 hover:bg-white/10"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Icon size={16} />
+                            <span className="font-medium text-sm lg:text-base">
+                              {label}
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/60 hidden lg:block">
+                            {description}
+                          </p>
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -486,15 +639,32 @@ const PostModal: React.FC<PostModalProps> = ({
                   <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
                     Category
                   </label>
-                  <input
-                    type="text"
-                    value={formData.category || ""}
-                    onChange={(e) =>
-                      handleInputChange("category", e.target.value)
-                    }
-                    className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white placeholder-gray-400"
-                    placeholder="Post category..."
-                  />
+                  <div className="relative">
+                    <select
+                      value={formData.category || ""}
+                      onChange={(e) =>
+                        handleInputChange("category", e.target.value)
+                      }
+                      disabled={categoriesLoading}
+                      className="w-full px-3 py-2 bg-white/5 border border-[#f7a5a5]/20 rounded-lg focus:outline-none focus:border-[#f7a5a5]/50 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">
+                        {categoriesLoading
+                          ? "Loading categories..."
+                          : "Select a category"}
+                      </option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.slug}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    {categoriesError && (
+                      <p className="text-red-400 text-xs mt-1">
+                        {categoriesError}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#f7a5a5] mb-1">
@@ -520,6 +690,40 @@ const PostModal: React.FC<PostModalProps> = ({
                       <Plus size={16} />
                     </button>
                   </div>
+
+                  {/* Popular Tags */}
+                  {popularTags.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-white/60 mb-1">
+                        Popular tags:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {popularTags.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleAddPopularTag(tag.name)}
+                            disabled={formData.tags.includes(tag.name)}
+                            className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                              formData.tags.includes(tag.name)
+                                ? "bg-[#f7a5a5]/20 text-[#f7a5a5] opacity-50 cursor-not-allowed"
+                                : "bg-white/5 text-white/70 hover:bg-[#f7a5a5]/10 hover:text-[#f7a5a5] cursor-pointer"
+                            }`}
+                          >
+                            {tag.name}
+                            <span className="text-white/40">({tag.count})</span>
+                          </button>
+                        ))}
+                      </div>
+                      {popularTagsLoading && (
+                        <p className="text-xs text-white/50 mt-1">
+                          Loading popular tags...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selected Tags */}
                   <div className="flex flex-wrap gap-1 mt-2">
                     {formData.tags.map((tag) => (
                       <span
@@ -663,7 +867,7 @@ const PostModal: React.FC<PostModalProps> = ({
                           Original Work
                         </span>
                         <Toggle
-                          checked={formData.isOriginalWork}
+                          checked={formData.originalWork}
                           onChange={(checked) =>
                             handleInputChange("isOriginalWork", checked)
                           }
@@ -745,13 +949,18 @@ const PostModal: React.FC<PostModalProps> = ({
               </button>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={
+                  isLoading ||
+                  (mode === "create" && availablePostTypes.length === 0)
+                }
                 className="flex-1 px-4 py-2 bg-[#f7a5a5] text-white rounded-lg hover:bg-[#f7a5a5]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading
                   ? "Saving..."
                   : mode === "create"
-                  ? "Create Post"
+                  ? availablePostTypes.length === 0
+                    ? "No Post Types Available"
+                    : "Create Post"
                   : "Save Changes"}
               </button>
             </div>

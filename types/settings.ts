@@ -127,6 +127,86 @@ export interface SiteSettings {
   [key: string]: any; // Allow additional settings
 }
 
+export interface UserPermissions {
+  // Add permissions
+  add_comments?: boolean;
+  add_comments_private?: boolean;
+  add_drafts?: boolean;
+  add_groups?: boolean;
+  add_pages?: boolean;
+  add_posts?: boolean;
+  add_uploads?: boolean;
+  add_users?: boolean;
+
+  // Settings permissions
+  change_settings?: boolean;
+
+  // HTML permissions
+  use_html_comments?: boolean;
+
+  // Delete permissions
+  delete_comments?: boolean;
+  delete_drafts?: boolean;
+  delete_groups?: boolean;
+  delete_own_comments?: boolean;
+  delete_own_drafts?: boolean;
+  delete_own_posts?: boolean;
+  delete_pages?: boolean;
+  delete_webmentions?: boolean;
+  delete_posts?: boolean;
+  delete_uploads?: boolean;
+  delete_users?: boolean;
+
+  // Edit permissions
+  edit_comments?: boolean;
+  edit_drafts?: boolean;
+  edit_groups?: boolean;
+  edit_own_comments?: boolean;
+  edit_own_drafts?: boolean;
+  edit_own_posts?: boolean;
+  edit_pages?: boolean;
+  edit_webmentions?: boolean;
+  edit_posts?: boolean;
+  edit_uploads?: boolean;
+  edit_users?: boolean;
+
+  // Content management permissions
+  export_content?: boolean;
+  import_content?: boolean;
+
+  // Post interaction permissions
+  like_posts?: boolean;
+  unlike_posts?: boolean;
+
+  // Category management
+  manage_categories?: boolean;
+
+  // System permissions
+  toggle_extensions?: boolean;
+
+  // View permissions
+  view_drafts?: boolean;
+  view_own_drafts?: boolean;
+  view_pages?: boolean;
+  view_private_posts?: boolean;
+  view_scheduled_posts?: boolean;
+  view_site?: boolean;
+  view_uploads?: boolean;
+
+  [key: string]: boolean | undefined; // Allow additional permissions
+}
+
+export interface PermissionsState {
+  data: UserPermissions | null;
+  loading: boolean;
+  error: string | null;
+  lastFetched: number | null;
+  userRole: string | null;
+  groupId: number | null;
+  groupName: string | null;
+  isInitialLoad: boolean;
+}
+
 export interface SettingsState {
   data: SiteSettings | null;
   loading: boolean;

@@ -82,10 +82,15 @@ export const adminPostsAPI = {
 
       // Check if post contains file uploads
       const hasFiles = this.postHasFiles(postData);
+      console.log("Post has files:", hasFiles);
 
       if (hasFiles) {
         // Use multipart/form-data for posts with files
         const formData = this.createFormData(postData);
+        console.log(
+          "FormData created, entries:",
+          Array.from(formData.entries())
+        );
 
         const response = await apiClient.post("/api/v1/admin/posts", formData, {
           headers: {
@@ -99,6 +104,12 @@ export const adminPostsAPI = {
         return transformPost(response.data);
       }
     } catch (error: any) {
+      console.error("API Error Details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+      });
       throw new ApiError(
         error.response?.data?.detail || "Failed to create post",
         error.response?.status
@@ -116,11 +127,17 @@ export const adminPostsAPI = {
       case "photo":
         return !!(content as any).imageFiles?.length;
       case "video":
-        return (
-          !!(content as any).videoFile ||
-          !!(content as any).posterImage ||
-          !!(content as any).captionFiles?.length
-        );
+        // Only return true if there are actual files to upload
+        const hasVideoFile = !!(content as any).videoFile;
+        const hasPosterImage = !!(content as any).posterImage;
+        const hasCaptionFiles = !!(content as any).captionFiles?.length;
+        console.log("Video file check:", {
+          hasVideoFile,
+          hasPosterImage,
+          hasCaptionFiles,
+          sourceType: (content as any).sourceType,
+        });
+        return hasVideoFile || hasPosterImage || hasCaptionFiles;
       case "audio":
         return !!(content as any).audioFile || !!(content as any).captionFile;
       case "file":

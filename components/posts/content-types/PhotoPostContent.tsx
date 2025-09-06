@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { PostContent } from "@/types/post";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import MarkdownContent from "@/components/common/MarkdownContent";
 
 interface PhotoPostContentProps {
   content: PostContent;
@@ -76,8 +77,11 @@ const PhotoPostContent: React.FC<PhotoPostContentProps> = ({ content }) => {
 
       {/* Caption */}
       {content.caption && (
-        <div className="text-text-secondary italic text-center bg-surface p-4 rounded-lg">
-          {content.caption}
+        <div className="bg-surface p-4 rounded-lg">
+          <MarkdownContent
+            content={content.caption}
+            className="text-text-secondary italic text-center"
+          />
         </div>
       )}
 

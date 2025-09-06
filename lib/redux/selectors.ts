@@ -1,7 +1,7 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { RootState } from "./store";
 
-// Basic selectors
+// Settings selectors
 export const selectSettings = (state: RootState) => state.settings;
 export const selectSettingsData = (state: RootState) => state.settings.data;
 export const selectSettingsLoading = (state: RootState) =>
@@ -11,6 +11,23 @@ export const selectSettingsLastFetched = (state: RootState) =>
   state.settings.lastFetched;
 export const selectSettingsIsInitialLoad = (state: RootState) =>
   state.settings.isInitialLoad;
+
+// Permissions selectors
+export const selectPermissions = (state: RootState) => state.permissions;
+export const selectPermissionsData = (state: RootState) =>
+  state.permissions.data;
+export const selectPermissionsLoading = (state: RootState) =>
+  state.permissions.loading;
+export const selectPermissionsError = (state: RootState) =>
+  state.permissions.error;
+export const selectPermissionsLastFetched = (state: RootState) =>
+  state.permissions.lastFetched;
+export const selectPermissionsIsInitialLoad = (state: RootState) =>
+  state.permissions.isInitialLoad;
+export const selectUserRole = (state: RootState) => state.permissions.userRole;
+export const selectGroupId = (state: RootState) => state.permissions.groupId;
+export const selectGroupName = (state: RootState) =>
+  state.permissions.groupName;
 
 // Memoized selectors for specific settings
 export const selectSiteTitle = createSelector(
@@ -92,5 +109,154 @@ export const selectIsInitialLoading = createSelector(
 // Selector to check if the app is ready (settings loaded successfully)
 export const selectAppReady = createSelector(
   [selectSettingsIsInitialLoad, selectSettingsData, selectSettingsError],
+  (isInitialLoad, data, error) => !isInitialLoad || !!data || !!error
+);
+
+// Permissions selectors
+export const selectCanAddPosts = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.add_posts === true
+);
+
+export const selectCanEditPosts = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.edit_posts === true
+);
+
+export const selectCanDeletePosts = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.delete_posts === true
+);
+
+export const selectCanEditOwnPosts = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.edit_own_posts === true
+);
+
+export const selectCanDeleteOwnPosts = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.delete_own_posts === true
+);
+
+export const selectCanAddUsers = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.add_users === true
+);
+
+export const selectCanEditUsers = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.edit_users === true
+);
+
+export const selectCanDeleteUsers = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.delete_users === true
+);
+
+export const selectCanChangeSettings = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.change_settings === true
+);
+
+export const selectCanAddComments = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.add_comments === true
+);
+
+export const selectCanEditComments = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.edit_comments === true
+);
+
+export const selectCanDeleteComments = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.delete_comments === true
+);
+
+export const selectCanAddUploads = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.add_uploads === true
+);
+
+export const selectCanViewUploads = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.view_uploads === true
+);
+
+export const selectCanDeleteUploads = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.delete_uploads === true
+);
+
+export const selectCanViewSite = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.view_site === true
+);
+
+export const selectCanManageCategories = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.manage_categories === true
+);
+
+export const selectCanToggleExtensions = createSelector(
+  [selectPermissionsData],
+  (permissions) => permissions?.toggle_extensions === true
+);
+
+// Combined selector for admin-related permissions
+export const selectAdminPermissions = createSelector(
+  [
+    selectCanChangeSettings,
+    selectCanAddUsers,
+    selectCanEditUsers,
+    selectCanDeleteUsers,
+  ],
+  (canChangeSettings, canAddUsers, canEditUsers, canDeleteUsers) => ({
+    canChangeSettings,
+    canAddUsers,
+    canEditUsers,
+    canDeleteUsers,
+  })
+);
+
+// Combined selector for content-related permissions
+export const selectContentPermissions = createSelector(
+  [
+    selectCanAddPosts,
+    selectCanEditPosts,
+    selectCanDeletePosts,
+    selectCanAddUploads,
+  ],
+  (canAddPosts, canEditPosts, canDeletePosts, canAddUploads) => ({
+    canAddPosts,
+    canEditPosts,
+    canDeletePosts,
+    canAddUploads,
+  })
+);
+
+// Selector to check if permissions are stale (older than 5 minutes)
+export const selectPermissionsStale = createSelector(
+  [selectPermissionsLastFetched],
+  (lastFetched) => {
+    if (!lastFetched) return true;
+    const fiveMinutes = 5 * 60 * 1000;
+    return Date.now() - lastFetched > fiveMinutes;
+  }
+);
+
+// Selector for initial permissions loading state
+export const selectIsInitialPermissionsLoading = createSelector(
+  [selectPermissionsIsInitialLoad, selectPermissionsLoading],
+  (isInitialLoad, loading) => isInitialLoad && loading
+);
+
+// Selector to check if permissions are ready
+export const selectPermissionsReady = createSelector(
+  [
+    selectPermissionsIsInitialLoad,
+    selectPermissionsData,
+    selectPermissionsError,
+  ],
   (isInitialLoad, data, error) => !isInitialLoad || !!data || !!error
 );

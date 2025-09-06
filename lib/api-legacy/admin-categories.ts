@@ -21,6 +21,28 @@ const transformCategories = (categories: any[]): Category[] => {
 
 export const adminCategoriesAPI = {
   /**
+   * Get all categories for dropdown/selection (simplified)
+   */
+  async getAllCategories(): Promise<Category[]> {
+    try {
+      const response = await apiClient.get("/api/v1/categories");
+
+      // Transform the categories in the response
+      const categories = Array.isArray(response.data)
+        ? response.data
+        : response.data?.data || [];
+
+      return transformCategories(categories);
+    } catch (error: any) {
+      throw new ApiError(
+        "Failed to fetch categories",
+        error?.response?.status,
+        error?.response?.data
+      );
+    }
+  },
+
+  /**
    * Get paginated categories for admin management
    */
   async getCategories(

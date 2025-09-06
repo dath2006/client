@@ -5,6 +5,7 @@ import ReduxProvider from "@/components/ReduxProvider";
 import Navigation from "@/components/Navigation";
 import "./globals.css";
 import { AppInitializer } from "@/components/common/AppInitializer";
+import { SiteAccessGuard } from "@/components/common/SiteAccessGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,8 +34,12 @@ export default function RootLayout({
       >
         <ReduxProvider>
           <AuthProvider>
-            <Navigation />
-            {children}
+            <AppInitializer>
+              <SiteAccessGuard>
+                <Navigation />
+                {children}
+              </SiteAccessGuard>
+            </AppInitializer>
           </AuthProvider>
         </ReduxProvider>
       </body>

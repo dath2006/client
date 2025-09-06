@@ -5,6 +5,7 @@ import UploadCard from "@/components/admin/uploads/UploadCard";
 import FilterSortControls from "@/components/admin/uploads/FilterSortControls";
 import SearchHeader from "@/components/admin/common/SearchHeader";
 import { adminAPI, ApiError } from "@/lib/api";
+import { useHasPermission } from "@/hooks/useGlobalPermissions";
 
 interface Upload {
   id: string;
@@ -233,6 +234,7 @@ const UploadsPage = () => {
           title="Upload"
           onSearch={handleSearch}
           onNew={handleNew}
+          hideNew={!useHasPermission("add_uploads", true)}
         />
 
         <FilterSortControls

@@ -104,11 +104,67 @@ export interface UpdatePostData extends Partial<CreatePostData> {
 }
 
 // Helper function to transform backend post to frontend post
-export const transformPost = (backendPost: BackendPost): BasePost => ({
-  ...backendPost,
-  createdAt: new Date(backendPost.createdAt),
-  updatedAt: new Date(backendPost.updatedAt),
-});
+export const transformPost = (backendPost: any): BasePost => {
+  // Handle the new backend format which has different field names
+  const author = backendPost.author
+    ? {
+        id: backendPost.author.id,
+        name:
+          backendPost.author.fullName || backendPost.author.name || "Unknown",
+        avatar: backendPost.author.image || backendPost.author.avatar,
+      }
+    : {
+        id: "unknown",
+        name: "Unknown",
+        avatar: undefined,
+      };
+
+  // Transform comments if they exist
+  const comments = (backendPost.comments || []).map((comment: any) => ({
+    id: comment.id,
+    author: {
+      id: comment.author?.id || "unknown",
+      name: comment.author?.fullName || comment.author?.name || "Unknown",
+      avatar: comment.author?.image || comment.author?.avatar,
+    },
+    content: comment.body || comment.content || "",
+    body: comment.body || comment.content || "",
+    createdAt: new Date(comment.createdAt || Date.now()),
+    likes: comment.likes || 0,
+    replies: [],
+  }));
+
+  return {
+    id: backendPost.id,
+    title: backendPost.title || "",
+    type: backendPost.type || "text",
+    author,
+    createdAt: new Date(backendPost.createdAt),
+    updatedAt: new Date(backendPost.updatedAt),
+    status: (backendPost.status || "published") as PostStatus,
+    tags: backendPost.tags || [],
+    category: backendPost.category || "",
+    likes: backendPost.likes || 0,
+    shares: backendPost.shares || 0,
+    saves: backendPost.saves || 0,
+    viewCount: backendPost.viewCount || 0,
+    content: backendPost.content || {},
+    comments,
+    imageUrl: backendPost.imageUrl,
+    webmentions: backendPost.webmentions,
+    slug: backendPost.slug,
+    isPinned: backendPost.pinned || false,
+    allowComments: backendPost.allowComments,
+    scheduledDate: backendPost.scheduledDate
+      ? new Date(backendPost.scheduledDate)
+      : undefined,
+    visibility: backendPost.visibility,
+    visibilityGroups: backendPost.visibilityGroups,
+    rightsHolder: backendPost.rightsHolder,
+    license: backendPost.license,
+    originalWork: backendPost.originalWork,
+  };
+};
 
 // Category Types
 export interface Category {

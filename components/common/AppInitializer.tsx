@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useGlobalLoading } from "@/hooks/useGlobalLoading";
 import { GlobalLoadingSpinner } from "./GlobalLoadingSpinner";
@@ -126,7 +128,7 @@ export function LoadingPhaseIndicator() {
     case "loading":
       return (
         <div className="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          Loading site settings...
+          Loading app data...
         </div>
       );
 
@@ -134,7 +136,7 @@ export function LoadingPhaseIndicator() {
       return (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="flex items-center space-x-2">
-            <span>Failed to load settings</span>
+            <span>Failed to load app data</span>
             <button
               onClick={retryInitialization}
               className="underline hover:no-underline"

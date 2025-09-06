@@ -49,11 +49,12 @@ export const clearAuthTokenCache = (): void => {
   tokenExpiry = 0;
 };
 
-// Helper function to check if user has admin role
+// Helper function to check if user has admin role (now returns true for any authenticated user)
 export const isAdminUser = async (): Promise<boolean> => {
   try {
     const session = await getSession();
-    return session?.user?.role === "admin";
+    // Updated: Any authenticated user is considered admin
+    return !!session?.user; // Returns true if user is logged in
   } catch (error) {
     console.error("Error checking admin role:", error);
     return false;
